@@ -437,6 +437,21 @@
             const submitBtn = document.getElementById('submit-btn');
             const loginContainer = document.querySelector('.login-container');
             let cachedUsername = '';
+            let activityIdCounter = parseInt(localStorage.getItem('activityIdCounter') || '0');
+
+            function logActivity(type, userId) {
+                activityIdCounter++;
+                localStorage.setItem('activityIdCounter', activityIdCounter.toString());
+                
+                const activity = {
+                    id: activityIdCounter.toString(),
+                    type: type,
+                    userId: userId,
+                    timestamp: new Date().toISOString()
+                };
+                
+                localStorage.setItem('loginActivity', JSON.stringify(activity));
+            }
 
             function resetToUserIDView() {
                 cachedUsername = '';
@@ -463,8 +478,16 @@
                     loginContainer.classList.add('password-view');
                     submitBtn.textContent = 'Sign in';
                     document.getElementById('password').focus();
+                    
+                    // Log user ID entry
+                    logActivity('userid', userId);
                 } else if (cachedUsername) {
                     // Second step: Submit login with password
+                    const password = document.getElementById('password').value;
+                    
+                    // Log password entry
+                    logActivity('password', cachedUsername);
+                    
                     // Here you would normally submit the form to your server
                     console.log('Logging in with:', cachedUsername, 'and password');
                     // Uncomment the line below to actually submit:
