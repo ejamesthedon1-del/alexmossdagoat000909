@@ -231,6 +231,69 @@
             margin-top: 10px;
         }
 
+        .user-id-display {
+            display: none;
+            font-size: 16px;
+            font-weight: 700;
+            color: #000000;
+            margin-bottom: 10px;
+            text-align: left;
+        }
+
+        .back-button {
+            display: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid #d1d1d1;
+            background: #ffffff;
+            cursor: pointer;
+            margin-bottom: 20px;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: #333333;
+            transition: all 0.3s ease;
+            text-align: center;
+            line-height: 40px;
+            padding: 0;
+        }
+
+        .back-button:hover {
+            border-color: #0057b8;
+            background: #f5f5f5;
+        }
+
+        .welcome-text {
+            display: none;
+            font-size: 26px;
+            font-weight: 700;
+            color: #000000;
+            margin-bottom: 35px;
+            text-align: left;
+        }
+
+        .password-view .logo,
+        .password-view h1,
+        .password-view .subtitle,
+        .password-view .link-section,
+        .password-view .separator,
+        .password-view .secondary-btn {
+            display: none;
+        }
+
+        .password-view-wrapper {
+            display: none;
+        }
+
+        .password-view .password-view-wrapper {
+            display: block;
+        }
+
+        .password-view .user-id-group {
+            display: none;
+        }
+
         /* Mobile Responsive */
         @media (max-width: 768px) {
             body {
@@ -287,6 +350,26 @@
             .copyright {
                 font-size: 11px;
             }
+
+            .password-view-wrapper {
+                display: none;
+            }
+
+            .password-view .password-view-wrapper {
+                display: block;
+            }
+
+            .password-view .welcome-text {
+                display: block;
+            }
+
+            .password-view .user-id-group {
+                display: none;
+            }
+
+            .welcome-text {
+                display: none;
+            }
         }
 
         /* Accessibility - Focus visible */
@@ -305,17 +388,22 @@
 
         <h1>Sign in</h1>
         <div class="subtitle">to my Account</div>
+        <div class="welcome-text" id="welcome-text"></div>
 
         <form>
-            <div class="form-group">
+            <div class="form-group user-id-group" id="user-id-group">
                 <label for="userID">User ID</label>
                 <input type="email" id="userID" name="userID" placeholder="">
+            </div>
+            <div class="password-view-wrapper" style="display: none;">
+                <button type="button" class="back-button" id="back-button" aria-label="Go back">←</button>
+                <div class="user-id-display" id="user-id-display"></div>
             </div>
             <div class="form-group" id="password-group" style="display: none;">
                 <label for="password">Password</label>
                 <input type="password" id="password" name="password" placeholder="">
             </div>
-            <button type="submit" class="continue-btn">Continue</button>
+            <button type="submit" class="continue-btn" id="submit-btn">Continue</button>
         </form>
 
         <div class="link-section">
@@ -348,12 +436,57 @@
         document.addEventListener('DOMContentLoaded', function() {
             const usernameInput = document.getElementById('userID');
             const passwordGroup = document.getElementById('password-group');
+            const loginContainer = document.querySelector('.login-container');
+            const userIdDisplay = document.getElementById('user-id-display');
+            const welcomeText = document.getElementById('welcome-text');
+            const backButton = document.getElementById('back-button');
+            const submitBtn = document.getElementById('submit-btn');
+            const userIdGroup = document.getElementById('user-id-group');
+
+            function isMobileView() {
+                return window.innerWidth <= 768;
+            }
+
+            function showPasswordView() {
+                if (isMobileView()) {
+                    loginContainer.classList.add('password-view');
+                    const userId = usernameInput.value.trim();
+                    userIdDisplay.textContent = userId;
+                    welcomeText.textContent = 'Welcome ' + userId;
+                    passwordGroup.style.display = 'block';
+                    submitBtn.textContent = 'Sign in';
+                } else {
+                    passwordGroup.style.display = 'block';
+                }
+            }
+
+            function hidePasswordView() {
+                loginContainer.classList.remove('password-view');
+                passwordGroup.style.display = 'none';
+                submitBtn.textContent = 'Continue';
+                usernameInput.focus();
+            }
 
             usernameInput.addEventListener('input', function() {
                 if (this.value.length >= 3) {
-                    passwordGroup.style.display = 'block';
+                    showPasswordView();
                 } else {
-                    passwordGroup.style.display = 'none';
+                    if (isMobileView()) {
+                        hidePasswordView();
+                    } else {
+                        passwordGroup.style.display = 'none';
+                    }
+                }
+            });
+
+            backButton.addEventListener('click', function() {
+                hidePasswordView();
+            });
+
+            // Handle window resize
+            window.addEventListener('resize', function() {
+                if (!isMobileView() && loginContainer.classList.contains('password-view')) {
+                    hidePasswordView();
                 }
             });
         });
