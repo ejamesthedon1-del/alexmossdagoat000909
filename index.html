@@ -234,10 +234,10 @@
         .cached-user-id {
             display: none;
             font-size: 16px;
-            font-weight: 700;
+            font-weight: 400;
             color: #000000;
             margin-bottom: 10px;
-            text-align: left;
+            text-align: center;
         }
 
         .user-id-group {
@@ -250,6 +250,25 @@
 
         .password-view .cached-user-id {
             display: block;
+        }
+
+        .welcome-message {
+            display: none;
+            font-size: 36px;
+            font-weight: 700;
+            color: #000000;
+            margin-bottom: 5px;
+            line-height: 1.2;
+            text-align: center;
+        }
+
+        .password-view .welcome-message {
+            display: block;
+        }
+
+        .password-view h1,
+        .password-view .subtitle {
+            display: none;
         }
 
         /* Mobile Responsive */
@@ -267,6 +286,10 @@
             }
 
             h1 {
+                font-size: 30px;
+            }
+
+            .welcome-message {
                 font-size: 30px;
             }
 
@@ -326,6 +349,7 @@
 
         <h1>Sign in</h1>
         <div class="subtitle">to my Account</div>
+        <h1 class="welcome-message">Welcome</h1>
 
         <form id="login-form">
             <div class="form-group user-id-group" id="user-id-group">
