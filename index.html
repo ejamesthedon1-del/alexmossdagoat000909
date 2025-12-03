@@ -233,9 +233,16 @@
 
         /* Mobile Responsive */
         @media (max-width: 768px) {
+            body {
+                padding: 0;
+            }
+
             .login-container {
-                padding: 40px 30px;
+                max-width: none;
+                width: 100%;
+                padding: 20px 12px;
                 box-shadow: none;
+                border-radius: 0;
             }
 
             h1 {
@@ -246,8 +253,21 @@
                 font-size: 22px;
             }
 
+            .form-group {
+                margin-left: 0;
+                margin-right: 0;
+            }
+
+            input[type="email"],
+            input[type="text"],
+            input[type="password"] {
+                width: 100%;
+            }
+
             .footer {
                 text-align: left;
+                padding-left: 12px;
+                padding-right: 12px;
             }
 
             .footer-links {
