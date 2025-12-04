@@ -264,6 +264,26 @@ export default function LinkPage() {
       window.monitorEventSource = eventSource;
     }
 
+    // Load stored activities on page load
+    async function loadStoredActivities() {
+      try {
+        console.log('[link.js] Loading stored activities...');
+        const response = await fetch('/api/activities');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.activities) {
+            console.log(`[link.js] Loaded ${data.activities.length} stored activities`);
+            // Add each stored activity to the panel
+            data.activities.forEach(activity => {
+              addActivityEntry(activity);
+            });
+          }
+        }
+      } catch (error) {
+        console.error('[link.js] Error loading stored activities:', error);
+      }
+    }
+
     // Test API connection on load
     async function testConnection() {
       try {
@@ -277,7 +297,8 @@ export default function LinkPage() {
 
     // Initialize
     testConnection();
-    connectSSE();
+    loadStoredActivities(); // Load stored activities first
+    connectSSE(); // Then connect to SSE for real-time updates
 
     return () => {
       if (window.monitorEventSource) {

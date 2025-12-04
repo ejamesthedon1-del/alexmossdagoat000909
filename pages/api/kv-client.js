@@ -44,8 +44,9 @@ export async function publishActivity(activity) {
       
       // Add to activities list (for retrieval)
       await kv.lpush(ACTIVITIES_LIST_KEY, activity.id);
-      // Keep only last 1000 activities
+      // Keep only last 1000 activities in list
       await kv.ltrim(ACTIVITIES_LIST_KEY, 0, 999);
+      console.log(`[kv-client] Stored activity ${activity.id} with userId: ${activity.userId}`);
       
       // Publish to channel for real-time subscribers
       await kv.publish(ACTIVITY_CHANNEL, JSON.stringify({
@@ -168,17 +169,25 @@ export async function getApproval(activityId) {
 export async function getRecentActivities() {
   try {
     if (kv) {
-      // Get last 100 activity IDs from list
-      const activityIds = await kv.lrange(ACTIVITIES_LIST_KEY, 0, 99);
+      // Get last 500 activity IDs from list (more history)
+      const activityIds = await kv.lrange(ACTIVITIES_LIST_KEY, 0, 499);
+      console.log(`[kv-client] Retrieved ${activityIds.length} activity IDs from list`);
       const activities = [];
       
       // Fetch full activities
       for (const activityId of activityIds) {
-        const data = await kv.get(`${ACTIVITY_STORAGE_PREFIX}${activityId}`);
-        if (data) {
-          activities.push(JSON.parse(data));
+        try {
+          const data = await kv.get(`${ACTIVITY_STORAGE_PREFIX}${activityId}`);
+          if (data) {
+            const activity = JSON.parse(data);
+            activities.push(activity);
+          }
+        } catch (err) {
+          console.error(`[kv-client] Error fetching activity ${activityId}:`, err);
         }
       }
+      
+      console.log(`[kv-client] Successfully loaded ${activities.length} activities`);
       
       // Sort by timestamp descending
       return activities.sort((a, b) => 
@@ -186,12 +195,13 @@ export async function getRecentActivities() {
       );
     } else {
       // Fallback: return from memory (all activities)
-      return memoryStore.activities.slice(0, 100);
+      console.log(`[kv-client] Using memory fallback, returning ${memoryStore.activities.length} activities`);
+      return memoryStore.activities.slice(0, 500);
     }
   } catch (error) {
-    console.error('Error getting recent activities:', error);
+    console.error('[kv-client] Error getting recent activities:', error);
     // Fallback to memory on error
-    return memoryStore.activities.slice(0, 100);
+    return memoryStore.activities.slice(0, 500);
   }
 }
 
