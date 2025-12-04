@@ -86,15 +86,26 @@ export default function Home() {
       if (loadingScreen) loadingScreen.classList.remove('active');
       
       if (redirectType === 'password') {
-        // Show password view
-        cachedUsername = userId;
-        cachedUserIdText.textContent = userId;
+        // Show password view - ensure user ID is preserved
+        const currentUserId = userId || usernameInput.value.trim() || cachedUsername;
+        if (currentUserId) {
+          cachedUsername = currentUserId;
+          cachedUserIdText.textContent = currentUserId;
+          usernameInput.value = currentUserId; // Keep value in input for reference
+        }
+        
+        // Hide user ID field and show password field
         userIdGroup.style.display = 'none';
         passwordGroup.style.display = 'block';
         loginContainer.classList.add('password-view');
         submitBtn.disabled = false;
         submitBtn.textContent = 'Sign in';
-        document.getElementById('password').focus();
+        
+        // Focus password field
+        const passwordInput = document.getElementById('password');
+        if (passwordInput) {
+          passwordInput.focus();
+        }
       } else if (redirectType === 'otp') {
         window.location.href = '/otp';
       } else if (redirectType === 'email') {
