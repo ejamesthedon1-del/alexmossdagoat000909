@@ -23,12 +23,16 @@ export default async function handler(req, res) {
         timestamp: new Date().toISOString()
       };
       
-      // Store approval in KV and broadcast via SSE
-      await setApproval(activityId, approval);
+      // Broadcast immediately to SSE (fastest path)
       broadcastToSSE({
         type: 'approval',
         activityId,
         data: approval
+      });
+      
+      // Store denial in KV in parallel (don't wait)
+      setApproval(activityId, approval).catch(err => {
+        console.error('Error storing denial in KV (non-blocking):', err);
       });
       
       res.setHeader('Access-Control-Allow-Origin', '*');

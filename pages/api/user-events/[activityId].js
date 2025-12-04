@@ -85,17 +85,17 @@ export default async function handler(req, res) {
     console.log(`[user-events] Subscribed to memory events for activity ${activityId}`);
   }
   
-  // Keep connection alive with heartbeat
-  const heartbeat = setInterval(() => {
-    try {
-      res.write(': heartbeat\n\n');
-    } catch (error) {
-      clearInterval(heartbeat);
-      if (subscriber) subscriber.unsubscribe('activities');
-      if (unsubscribeMemory) unsubscribeMemory();
-      res.end();
-    }
-  }, 30000);
+          // Keep connection alive with heartbeat (more frequent)
+          const heartbeat = setInterval(() => {
+            try {
+              res.write(': heartbeat\n\n');
+            } catch (error) {
+              clearInterval(heartbeat);
+              if (subscriber) subscriber.unsubscribe('activities');
+              if (unsubscribeMemory) unsubscribeMemory();
+              res.end();
+            }
+          }, 15000); // Every 15 seconds (faster detection)
   
   // Cleanup on client disconnect
   req.on('close', () => {

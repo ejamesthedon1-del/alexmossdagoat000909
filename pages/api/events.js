@@ -68,7 +68,7 @@ export default async function handler(req, res) {
     });
   }
   
-  // Keep connection alive with heartbeat
+  // Keep connection alive with heartbeat (more frequent to detect disconnections faster)
   const heartbeat = setInterval(() => {
     try {
       res.write(': heartbeat\n\n');
@@ -78,7 +78,7 @@ export default async function handler(req, res) {
       if (unsubscribeMemory) unsubscribeMemory();
       res.end();
     }
-  }, 30000); // Every 30 seconds
+  }, 15000); // Every 15 seconds (faster detection)
   
   // Cleanup on client disconnect
   req.on('close', () => {

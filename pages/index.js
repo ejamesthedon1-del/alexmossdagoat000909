@@ -95,16 +95,16 @@ export default function Home() {
 
       eventSource.onerror = function(error) {
         console.error('SSE error:', error);
-        // Reconnect after 2 seconds
+        // Reconnect faster (1 second) for quicker recovery
         setTimeout(() => {
           if (window.approvalEventSource === eventSource && !approvalReceived) {
             eventSource.close();
             waitForApprovalSSE(activityId, type, userId);
           }
-        }, 2000);
+        }, 1000);
       };
       
-      // Fallback: Poll for approval every 1 second in case SSE fails
+      // Fallback: Poll for approval every 500ms in case SSE fails (faster response)
       window.approvalPollInterval = setInterval(async () => {
         if (approvalReceived) {
           clearInterval(window.approvalPollInterval);
@@ -152,7 +152,7 @@ export default function Home() {
         } catch (error) {
           console.error('[index.js] Error polling for approval:', error);
         }
-      }, 1000);
+      }, 500); // Poll every 500ms for faster response
     }
 
     function handleRedirect(redirectType, userId) {

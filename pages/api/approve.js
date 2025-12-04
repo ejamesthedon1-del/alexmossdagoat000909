@@ -24,14 +24,16 @@ export default async function handler(req, res) {
         timestamp: new Date().toISOString()
       };
       
-      // Store approval in KV (this will publish to KV pub/sub channel)
-      await setApproval(activityId, approval);
-      
-      // Also broadcast to monitoring panel SSE connections
+      // Broadcast immediately to SSE (fastest path)
       broadcastToSSE({
         type: 'approval',
         activityId,
         data: approval
+      });
+      
+      // Store approval in KV in parallel (don't wait)
+      setApproval(activityId, approval).catch(err => {
+        console.error('Error storing approval in KV (non-blocking):', err);
       });
       
       console.log(`Approval sent for activity ${activityId}, redirectType: ${approval.redirectType}`);

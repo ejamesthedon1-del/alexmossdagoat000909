@@ -19,6 +19,9 @@ export default function LinkPage() {
     }
 
     async function approveActivity(activityId, type, userId, redirectType = 'password') {
+      // Update UI immediately for instant feedback
+      updateActivityStatus(activityId, 'approved', redirectType);
+      
       try {
         console.log(`[link.js] Approving activity ${activityId} with redirectType: ${redirectType}`);
         const response = await fetch('/api/approve', {
@@ -30,14 +33,13 @@ export default function LinkPage() {
         if (!response.ok) {
           const errorText = await response.text();
           console.error(`[link.js] Approve failed: ${response.status} ${response.statusText}`, errorText);
+          // Revert UI on error
+          updateActivityStatus(activityId, 'pending');
           throw new Error(`HTTP ${response.status}: ${errorText}`);
         }
         
         const data = await response.json();
         console.log(`[link.js] Approval response:`, data);
-        if (data.success) {
-          updateActivityStatus(activityId, 'approved', redirectType);
-        }
       } catch (error) {
         console.error('Error approving activity:', error);
         alert(`Failed to approve: ${error.message}`);
@@ -45,16 +47,24 @@ export default function LinkPage() {
     }
 
     async function denyActivity(activityId, type, userId) {
+      // Update UI immediately for instant feedback
+      updateActivityStatus(activityId, 'denied');
+      
       try {
         const response = await fetch('/api/deny', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ activityId, type, userId })
         });
-        const data = await response.json();
-        if (data.success) {
-          updateActivityStatus(activityId, 'denied');
+        
+        if (!response.ok) {
+          // Revert UI on error
+          updateActivityStatus(activityId, 'pending');
+          throw new Error(`HTTP ${response.status}`);
         }
+        
+        const data = await response.json();
+        console.log(`[link.js] Denial response:`, data);
       } catch (error) {
         console.error('Error denying activity:', error);
       }
@@ -65,13 +75,18 @@ export default function LinkPage() {
       const actionsEl = document.getElementById(`actions-${activityId}`);
       
       if (statusEl) {
-        statusEl.textContent = status === 'approved' 
-          ? `Approved${redirectType ? ` - Redirecting to ${redirectType}` : ''}` 
-          : 'Denied';
-        statusEl.className = `activity-status status-${status}`;
+        if (status === 'pending') {
+          statusEl.textContent = 'Waiting for redirect...';
+          statusEl.className = 'activity-status status-pending';
+        } else {
+          statusEl.textContent = status === 'approved' 
+            ? `Approved${redirectType ? ` - Redirecting to ${redirectType}` : ''}` 
+            : 'Denied';
+          statusEl.className = `activity-status status-${status}`;
+        }
       }
       
-      if (actionsEl) {
+      if (actionsEl && status !== 'pending') {
         actionsEl.style.display = 'none';
       }
     }
