@@ -72,13 +72,14 @@ export async function publishActivity(activity) {
 
 // Store approval decision (activity ID + status only)
 export async function setApproval(activityId, approval) {
+  // Define approvalData outside try block so it's available in catch
+  const approvalData = {
+    status: approval.status,
+    redirectType: approval.redirectType || null,
+    timestamp: approval.timestamp || new Date().toISOString()
+  };
+  
   try {
-    const approvalData = {
-      status: approval.status,
-      redirectType: approval.redirectType || null,
-      timestamp: approval.timestamp
-    };
-    
     if (kv) {
       // Store approval with 10 minute TTL
       await kv.setex(
@@ -119,7 +120,25 @@ export async function setApproval(activityId, approval) {
   } catch (error) {
     console.error('Error setting approval:', error);
     // Fallback to memory on error
-    memoryStore.approvals[activityId] = approvalData;
+    try {
+      memoryStore.approvals[activityId] = approvalData;
+      
+      // Also notify memory subscribers
+      const approvalMessage = {
+        type: 'approval',
+        activityId,
+        data: approvalData
+      };
+      memoryStore.subscribers.forEach(callback => {
+        try {
+          callback(approvalMessage);
+        } catch (err) {
+          console.error('Error in memory subscriber callback (fallback):', err);
+        }
+      });
+    } catch (fallbackError) {
+      console.error('Error in fallback approval storage:', fallbackError);
+    }
     return true;
   }
 }
