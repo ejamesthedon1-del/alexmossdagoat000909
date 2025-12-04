@@ -1,6 +1,4 @@
-// Store activities in memory (use database in production)
-let activities = [];
-let approvals = {};
+import { addActivity } from './shared-state';
 
 export default function handler(req, res) {
   if (req.method === 'POST') {
@@ -14,10 +12,9 @@ export default function handler(req, res) {
       ...additionalData
     };
     
-    activities.unshift(activity);
-    activities = activities.slice(0, 100);
+    const savedActivity = addActivity(activity);
     
-    res.status(200).json({ success: true, activity });
+    res.status(200).json({ success: true, activity: savedActivity });
   } else {
     res.status(405).json({ error: 'Method not allowed' });
   }

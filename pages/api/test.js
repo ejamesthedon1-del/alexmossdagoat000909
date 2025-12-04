@@ -1,7 +1,8 @@
-let activities = [];
+import { getActivities } from './shared-state';
 
 export default function handler(req, res) {
   if (req.method === 'GET') {
+    const activities = getActivities();
     res.status(200).json({
       status: 'ok',
       message: 'Server is running',

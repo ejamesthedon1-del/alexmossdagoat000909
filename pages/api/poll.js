@@ -1,8 +1,9 @@
-let activities = [];
+import { getActivities } from './shared-state';
 
 export default function handler(req, res) {
   if (req.method === 'GET') {
     const since = req.query.since || '0';
+    const activities = getActivities();
     
     if (since === '0') {
       res.status(200).json(activities);
