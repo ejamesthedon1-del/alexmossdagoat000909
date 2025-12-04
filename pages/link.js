@@ -239,12 +239,23 @@ export default function LinkPage() {
       };
       
       eventSource.onerror = function(error) {
-        console.error('SSE error:', error);
-        // Reconnect after 3 seconds
+        console.error('[link.js] SSE connection error:', error);
+        statusIndicator.classList.remove('status-active');
+        statusIndicator.classList.add('status-inactive');
+        
+        // Reconnect faster (1 second) for quicker recovery
         setTimeout(() => {
-          eventSource.close();
-          connectSSE();
-        }, 3000);
+          if (window.monitorEventSource === eventSource) {
+            eventSource.close();
+            connectSSE();
+          }
+        }, 1000);
+      };
+      
+      eventSource.onopen = function() {
+        console.log('[link.js] SSE connected successfully');
+        statusIndicator.classList.add('status-active');
+        statusIndicator.classList.remove('status-inactive');
       };
       
       // Store event source for cleanup
