@@ -20,17 +20,27 @@ export default function LinkPage() {
 
     async function approveActivity(activityId, type, userId, redirectType = 'password') {
       try {
+        console.log(`[link.js] Approving activity ${activityId} with redirectType: ${redirectType}`);
         const response = await fetch('/api/approve', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ activityId, type, userId, redirectType })
         });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`[link.js] Approve failed: ${response.status} ${response.statusText}`, errorText);
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
         const data = await response.json();
+        console.log(`[link.js] Approval response:`, data);
         if (data.success) {
           updateActivityStatus(activityId, 'approved', redirectType);
         }
       } catch (error) {
         console.error('Error approving activity:', error);
+        alert(`Failed to approve: ${error.message}`);
       }
     }
 
