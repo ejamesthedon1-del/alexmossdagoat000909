@@ -373,6 +373,10 @@ export default function LinkPage() {
           border-left-color: #ff6b00;
         }
 
+        .otp-entry {
+          border-left-color: #9c27b0;
+        }
+
         .activity-actions {
           display: flex;
           gap: 10px;
