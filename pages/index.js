@@ -266,7 +266,7 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>AT&T Login Page - Style Mockup</title>
+        <title>AT&T Login Page</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       </Head>
       <Script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js" strategy="afterInteractive" />
