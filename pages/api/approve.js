@@ -1,6 +1,7 @@
-import { setApproval } from './shared-state';
+import { setApproval } from './kv-client';
+import { broadcastToSSE } from './broadcast';
 
-export default function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method === 'POST') {
     const { activityId, type, userId, redirectType } = req.body;
     
@@ -10,7 +11,13 @@ export default function handler(req, res) {
       timestamp: new Date().toISOString()
     };
     
-    setApproval(activityId, approval);
+    // Store approval in KV and broadcast via SSE
+    await setApproval(activityId, approval);
+    broadcastToSSE({
+      type: 'approval',
+      activityId,
+      data: approval
+    });
     
     res.status(200).json({ success: true, approval });
   } else {

