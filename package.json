@@ -1,0 +1,12 @@
+{
+  "name": "verizon-login-monitor",
+  "version": "1.0.0",
+  "description": "Static HTML pages for login monitoring",
+  "scripts": {
+    "start": "echo 'Static site - no server needed'"
+  },
+  "keywords": ["monitoring", "login"],
+  "author": "",
+  "license": "ISC"
+}
+
