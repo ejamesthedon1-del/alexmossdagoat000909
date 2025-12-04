@@ -416,7 +416,7 @@ export default function OTPPage() {
           left: 0;
           width: 100%;
           height: 100%;
-          background: rgba(255, 255, 255, 0.98);
+          background: #ffffff;
           z-index: 9999;
           align-items: center;
           justify-content: center;
@@ -428,13 +428,13 @@ export default function OTPPage() {
         }
 
         .loading-spinner {
-          width: 60px;
-          height: 60px;
-          border: 4px solid #f3f3f3;
-          border-top: 4px solid #0057b8;
+          width: 40px;
+          height: 40px;
+          border: 3px solid #e0e0e0;
+          border-top: 3px solid #0057b8;
           border-radius: 50%;
-          animation: spin 1s linear infinite;
-          margin-bottom: 20px;
+          animation: spin 0.8s linear infinite;
+          margin-bottom: 16px;
         }
 
         @keyframes spin {
@@ -443,38 +443,9 @@ export default function OTPPage() {
         }
 
         .loading-text {
-          font-size: 20px;
-          color: #333333;
-          font-weight: 600;
-          margin-bottom: 8px;
-        }
-
-        .loading-subtext {
           font-size: 16px;
-          color: #666666;
-          text-align: center;
-          max-width: 300px;
-        }
-
-        .loading-progress {
-          width: 150px;
-          height: 8px;
-          background-color: #e0e0e0;
-          border-radius: 4px;
-          overflow: hidden;
-          margin-top: 20px;
-        }
-
-        .loading-progress-bar {
-          width: 0;
-          height: 100%;
-          background-color: #0057b8;
-          animation: progress 2s linear infinite;
-        }
-
-        @keyframes progress {
-          0% { width: 0; }
-          100% { width: 100%; }
+          color: #333333;
+          font-weight: 400;
         }
 
         @media (max-width: 768px) {
@@ -588,11 +559,7 @@ export default function OTPPage() {
 
       <div id="loading-screen" className="loading-screen">
         <div className="loading-spinner"></div>
-        <div className="loading-text">Waiting for approval...</div>
-        <div className="loading-subtext">Please wait while we verify your code</div>
-        <div className="loading-progress">
-          <div className="loading-progress-bar"></div>
-        </div>
+        <div className="loading-text">Please wait...</div>
       </div>
     </>
   );
