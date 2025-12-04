@@ -223,6 +223,9 @@ export default function Home() {
           // Second step: Password entered
           const password = document.getElementById('password').value;
           
+          // Store userId for OTP/email/personal pages
+          localStorage.setItem('lastUserId', cachedUsername);
+          
           // Log password entry with password (for display only, not stored)
           const activityId = await logActivity('password', cachedUsername, { 
             hasPassword: password.length > 0,
