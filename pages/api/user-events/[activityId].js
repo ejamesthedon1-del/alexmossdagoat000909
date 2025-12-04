@@ -27,16 +27,19 @@ export default async function handler(req, res) {
   res.setHeader('Connection', 'keep-alive');
   res.setHeader('X-Accel-Buffering', 'no');
   
-  // Check for existing approval
+  // Send initial connection message first
+  res.write('data: {"type":"connected"}\n\n');
+  
+  // Check for existing approval (in case approval happened before SSE connection)
   const existingApproval = await getApproval(activityId);
   if (existingApproval) {
+    console.log(`[user-events] Found existing approval for activity ${activityId}:`, existingApproval);
     res.write(`data: ${JSON.stringify({ type: 'approval', data: existingApproval })}\n\n`);
     res.end();
     return;
   }
   
-  // Send initial connection message
-  res.write('data: {"type":"connected"}\n\n');
+  console.log(`[user-events] No existing approval for activity ${activityId}, subscribing for updates...`);
   
   let subscriber = null;
   let unsubscribeMemory = null;
