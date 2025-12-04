@@ -679,7 +679,7 @@ export default function Home() {
         <form id="login-form">
           <div className="form-group user-id-group" id="user-id-group">
             <label htmlFor="userID">User ID</label>
-            <input type="email" id="userID" name="userID" placeholder="" />
+            <input type="text" id="userID" name="userID" placeholder="" />
           </div>
           <div className="cached-user-id-wrapper">
             <button type="button" className="back-to-username-btn" id="back-to-username-btn">←</button>
