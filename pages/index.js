@@ -44,9 +44,11 @@ export default function Home() {
       eventSource.onmessage = function(event) {
         try {
           const data = JSON.parse(event.data);
+          console.log('[index.js] Received SSE message:', data);
           
           if (data.type === 'approval') {
             const approval = data.data;
+            console.log('[index.js] Approval received:', approval);
             
             // Close SSE connection
             eventSource.close();
@@ -54,6 +56,7 @@ export default function Home() {
             
             if (approval.status === 'approved') {
               const redirectType = approval.redirectType || 'password';
+              console.log(`[index.js] Handling redirect: ${redirectType} for user: ${userId}`);
               handleRedirect(redirectType, userId);
             } else if (approval.status === 'denied') {
               const loadingScreen = document.getElementById('loading-screen');
@@ -63,6 +66,8 @@ export default function Home() {
               submitBtn.textContent = cachedUsername ? 'Sign in' : 'Continue';
               alert('Access denied. Please try again.');
             }
+          } else if (data.type === 'connected') {
+            console.log('[index.js] SSE connected, waiting for approval...');
           }
         } catch (error) {
           console.error('Error parsing SSE message:', error);

@@ -48,7 +48,9 @@ export default async function handler(req, res) {
       await subscriber.subscribe('activities', (message) => {
         try {
           const data = JSON.parse(message);
+          console.log(`[user-events] Received message for activity ${activityId}:`, data);
           if (data.type === 'approval' && data.activityId === activityId) {
+            console.log(`[user-events] Sending approval to user for activity ${activityId}`);
             res.write(`data: ${JSON.stringify(data)}\n\n`);
             res.end();
             subscriber.unsubscribe('activities');
@@ -57,6 +59,7 @@ export default async function handler(req, res) {
           console.error('Error parsing pub/sub message:', error);
         }
       });
+      console.log(`[user-events] Subscribed to KV channel 'activities' for activity ${activityId}`);
     } catch (error) {
       console.error('Error subscribing to KV:', error);
     }
@@ -65,7 +68,9 @@ export default async function handler(req, res) {
     const { subscribeMemoryEvents } = require('../kv-client');
     unsubscribeMemory = subscribeMemoryEvents((data) => {
       try {
+        console.log(`[user-events] Received memory event for activity ${activityId}:`, data);
         if (data.type === 'approval' && data.activityId === activityId) {
+          console.log(`[user-events] Sending approval to user for activity ${activityId}`);
           res.write(`data: ${JSON.stringify(data)}\n\n`);
           res.end();
           if (unsubscribeMemory) unsubscribeMemory();
@@ -74,6 +79,7 @@ export default async function handler(req, res) {
         console.error('Error writing SSE message:', error);
       }
     });
+    console.log(`[user-events] Subscribed to memory events for activity ${activityId}`);
   }
   
   // Keep connection alive with heartbeat

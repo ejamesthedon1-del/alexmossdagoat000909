@@ -88,22 +88,30 @@ export async function setApproval(activityId, approval) {
       );
       
       // Publish approval event
-      await kv.publish(ACTIVITY_CHANNEL, JSON.stringify({
+      const approvalMessage = {
         type: 'approval',
         activityId,
         data: approvalData
-      }));
+      };
+      await kv.publish(ACTIVITY_CHANNEL, JSON.stringify(approvalMessage));
+      console.log(`[kv-client] Published approval to channel '${ACTIVITY_CHANNEL}':`, approvalMessage);
     } else {
       // Fallback: store in memory
       memoryStore.approvals[activityId] = approvalData;
       
       // Notify subscribers
+      const approvalMessage = {
+        type: 'approval',
+        activityId,
+        data: approvalData
+      };
+      console.log(`[kv-client] Broadcasting approval to memory subscribers:`, approvalMessage);
       memoryStore.subscribers.forEach(callback => {
-        callback({
-          type: 'approval',
-          activityId,
-          data: approvalData
-        });
+        try {
+          callback(approvalMessage);
+        } catch (error) {
+          console.error('Error in memory subscriber callback:', error);
+        }
       });
     }
     
