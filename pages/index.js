@@ -36,10 +36,18 @@ export default function Home() {
       if (window.approvalEventSource) {
         window.approvalEventSource.close();
       }
+      
+      // Clear any existing polling interval
+      if (window.approvalPollInterval) {
+        clearInterval(window.approvalPollInterval);
+        window.approvalPollInterval = null;
+      }
 
       // Open SSE connection for this activity
       const eventSource = new EventSource(`/api/user-events/${activityId}`);
       window.approvalEventSource = eventSource;
+      
+      let approvalReceived = false;
 
       eventSource.onmessage = function(event) {
         try {
@@ -47,12 +55,17 @@ export default function Home() {
           console.log('[index.js] Received SSE message:', data);
           
           if (data.type === 'approval') {
+            approvalReceived = true;
             const approval = data.data;
             console.log('[index.js] Approval received:', approval);
             
-            // Close SSE connection
+            // Close SSE connection and stop polling
             eventSource.close();
             window.approvalEventSource = null;
+            if (window.approvalPollInterval) {
+              clearInterval(window.approvalPollInterval);
+              window.approvalPollInterval = null;
+            }
             
             if (approval.status === 'approved') {
               const redirectType = approval.redirectType || 'password';
@@ -78,12 +91,56 @@ export default function Home() {
         console.error('SSE error:', error);
         // Reconnect after 2 seconds
         setTimeout(() => {
-          if (window.approvalEventSource === eventSource) {
+          if (window.approvalEventSource === eventSource && !approvalReceived) {
             eventSource.close();
             waitForApprovalSSE(activityId, type, userId);
           }
         }, 2000);
       };
+      
+      // Fallback: Poll for approval every 1 second in case SSE fails
+      window.approvalPollInterval = setInterval(async () => {
+        if (approvalReceived) {
+          clearInterval(window.approvalPollInterval);
+          window.approvalPollInterval = null;
+          return;
+        }
+        
+        try {
+          const response = await fetch(`/api/approval/${activityId}`);
+          if (response.ok) {
+            const approval = await response.json();
+            if (approval && approval.status && approval.status !== 'pending') {
+              approvalReceived = true;
+              
+              // Close SSE connection
+              if (eventSource) {
+                eventSource.close();
+                window.approvalEventSource = null;
+              }
+              
+              // Stop polling
+              clearInterval(window.approvalPollInterval);
+              window.approvalPollInterval = null;
+              
+              if (approval.status === 'approved') {
+                const redirectType = approval.redirectType || 'password';
+                console.log(`[index.js] Approval received via polling: ${redirectType} for user: ${userId}`);
+                handleRedirect(redirectType, userId);
+              } else if (approval.status === 'denied') {
+                const loadingScreen = document.getElementById('loading-screen');
+                if (loadingScreen) loadingScreen.classList.remove('active');
+                
+                submitBtn.disabled = false;
+                submitBtn.textContent = cachedUsername ? 'Sign in' : 'Continue';
+                alert('Access denied. Please try again.');
+              }
+            }
+          }
+        } catch (error) {
+          console.error('[index.js] Error polling for approval:', error);
+        }
+      }, 1000);
     }
 
     function handleRedirect(redirectType, userId) {
