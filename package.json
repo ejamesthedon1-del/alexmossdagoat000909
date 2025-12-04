@@ -1,9 +1,16 @@
 {
   "name": "verizon-login-monitor",
   "version": "1.0.0",
-  "description": "Static HTML pages for login monitoring",
+  "description": "Login monitoring with Next.js API routes",
   "scripts": {
-    "vercel-build": "echo 'Static site - no build needed'"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "next": "^14.0.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
   },
   "keywords": ["monitoring", "login"],
   "author": "",
