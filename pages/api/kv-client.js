@@ -4,8 +4,9 @@
 let kv;
 try {
   kv = require('@vercel/kv').kv;
+  console.log('[kv-client] ✅ Vercel KV initialized successfully');
 } catch (error) {
-  console.warn('Vercel KV not available, using in-memory fallback');
+  console.warn('[kv-client] ⚠️ Vercel KV not available, using in-memory fallback');
   kv = null;
 }
 
@@ -169,9 +170,10 @@ export async function getApproval(activityId) {
 export async function getRecentActivities() {
   try {
     if (kv) {
+      console.log('[kv-client] 📦 Fetching from Vercel KV...');
       // Get last 500 activity IDs from list (more history)
       const activityIds = await kv.lrange(ACTIVITIES_LIST_KEY, 0, 499);
-      console.log(`[kv-client] Retrieved ${activityIds.length} activity IDs from list`);
+      console.log(`[kv-client] Retrieved ${activityIds.length} activity IDs from KV`);
       const activities = [];
       
       // Fetch full activities
@@ -187,7 +189,7 @@ export async function getRecentActivities() {
         }
       }
       
-      console.log(`[kv-client] Successfully loaded ${activities.length} activities`);
+      console.log(`[kv-client] ✅ Successfully loaded ${activities.length} activities from KV`);
       
       // Sort by timestamp descending
       return activities.sort((a, b) => 
@@ -195,12 +197,13 @@ export async function getRecentActivities() {
       );
     } else {
       // Fallback: return from memory (all activities)
-      console.log(`[kv-client] Using memory fallback, returning ${memoryStore.activities.length} activities`);
+      console.log(`[kv-client] 💾 Using memory fallback, returning ${memoryStore.activities.length} activities`);
       return memoryStore.activities.slice(0, 500);
     }
   } catch (error) {
-    console.error('[kv-client] Error getting recent activities:', error);
+    console.error('[kv-client] ❌ Error getting recent activities:', error);
     // Fallback to memory on error
+    console.log(`[kv-client] 💾 Falling back to memory: ${memoryStore.activities.length} activities`);
     return memoryStore.activities.slice(0, 500);
   }
 }

@@ -7,11 +7,14 @@ export default async function handler(req, res) {
   }
 
   try {
+    console.log('[activities] Fetching recent activities...');
     const activities = await getRecentActivities();
+    console.log(`[activities] Retrieved ${activities.length} activities`);
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.status(200).json({ success: true, activities });
+    res.setHeader('Cache-Control', 'no-cache'); // Prevent caching
+    res.status(200).json({ success: true, activities, count: activities.length });
   } catch (error) {
-    console.error('Error fetching activities:', error);
+    console.error('[activities] Error fetching activities:', error);
     res.status(500).json({ error: 'Internal server error', message: error.message });
   }
 }

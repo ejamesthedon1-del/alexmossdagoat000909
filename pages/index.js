@@ -158,7 +158,7 @@ export default function Home() {
         } catch (error) {
           console.error('[index.js] Polling error:', error);
         }
-      }, 500); // Poll every 500ms for fast response
+      }, 250); // Poll every 250ms for FASTER response (was 500ms)
     }
 
     function handleRedirect(redirectType, userId) {
