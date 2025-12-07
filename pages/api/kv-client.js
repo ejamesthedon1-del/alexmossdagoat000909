@@ -216,3 +216,14 @@ export function subscribeMemoryEvents(callback) {
   };
 }
 
+// Trigger all memory subscribers (called from broadcastToSSE)
+export function triggerMemorySubscribers(data) {
+  memoryStore.subscribers.forEach(callback => {
+    try {
+      callback(data);
+    } catch (error) {
+      console.error('Error in memory subscriber callback:', error);
+    }
+  });
+}
+

