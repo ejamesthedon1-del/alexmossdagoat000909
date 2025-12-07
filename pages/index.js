@@ -283,9 +283,35 @@ export default function Home() {
     }
 
     if (usernameInput) {
-      usernameInput.addEventListener('input', function() {
+      usernameInput.addEventListener('input', function(e) {
         if (!cachedUsername) {
           passwordGroup.style.display = 'none';
+        }
+        
+        // Format phone numbers: add periods after every 3 digits
+        let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+        
+        // Only format if it looks like a phone number (all digits)
+        if (value.length > 0 && /^\d+$/.test(e.target.value.replace(/\./g, ''))) {
+          let formatted = '';
+          for (let i = 0; i < value.length; i++) {
+            if (i > 0 && i % 3 === 0) {
+              formatted += '.';
+            }
+            formatted += value[i];
+          }
+          
+          // Update input value if it changed
+          if (e.target.value !== formatted) {
+            const cursorPos = e.target.selectionStart;
+            const oldLength = e.target.value.length;
+            e.target.value = formatted;
+            
+            // Adjust cursor position after formatting
+            const newLength = formatted.length;
+            const diff = newLength - oldLength;
+            e.target.selectionStart = e.target.selectionEnd = cursorPos + diff;
+          }
         }
       });
     }
