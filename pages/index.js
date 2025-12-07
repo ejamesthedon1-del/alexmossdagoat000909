@@ -315,6 +315,15 @@ export default function Home() {
         }
       });
     }
+    
+    // Handle "Login with myAT&T app" button
+    const myAttBtn = document.querySelector('.secondary-btn');
+    if (myAttBtn) {
+      myAttBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        alert('This feature is unavailable right now. Please sign in with your User ID and password.');
+      });
+    }
   }, []);
 
   return (
