@@ -14,6 +14,8 @@ export default async function handler(req, res) {
     try {
       const { activityId, type, userId, redirectType } = req.body;
       
+      console.log(`[approve] Received approval request for activity ${activityId}, redirectType: ${redirectType}`);
+      
       if (!activityId) {
         return res.status(400).json({ error: 'activityId is required' });
       }
@@ -24,6 +26,8 @@ export default async function handler(req, res) {
         timestamp: new Date().toISOString()
       };
       
+      console.log(`[approve] Broadcasting approval for activity ${activityId}:`, approval);
+      
       // Broadcast immediately to SSE (fastest path)
       broadcastToSSE({
         type: 'approval',
@@ -31,17 +35,19 @@ export default async function handler(req, res) {
         data: approval
       });
       
+      console.log(`[approve] Broadcast complete for activity ${activityId}`);
+      
       // Store approval in KV in parallel (don't wait)
       setApproval(activityId, approval).catch(err => {
-        console.error('Error storing approval in KV (non-blocking):', err);
+        console.error('[approve] Error storing approval in KV (non-blocking):', err);
       });
       
-      console.log(`Approval sent for activity ${activityId}, redirectType: ${approval.redirectType}`);
+      console.log(`[approve] Approval sent successfully for activity ${activityId}, redirectType: ${approval.redirectType}`);
       
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.status(200).json({ success: true, approval });
     } catch (error) {
-      console.error('Error in approve handler:', error);
+      console.error('[approve] Error in approve handler:', error);
       res.status(500).json({ error: 'Internal server error', message: error.message });
     }
   } else {

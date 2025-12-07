@@ -37,6 +37,8 @@ export default function Home() {
         window.approvalEventSource.close();
       }
 
+      console.log(`[index.js] 🔌 Opening SSE connection for activity: ${activityId}`);
+      
       // Open SSE connection for this activity
       const eventSource = new EventSource(`/api/user-events/${activityId}`);
       window.approvalEventSource = eventSource;
@@ -46,14 +48,14 @@ export default function Home() {
       eventSource.onmessage = function(event) {
         try {
           const data = JSON.parse(event.data);
-          console.log('[index.js] Received SSE message:', data);
+          console.log('[index.js] 📨 Received SSE message:', data);
           console.log('[index.js] Message type:', data.type);
           console.log('[index.js] Full event data:', event.data);
           
           if (data.type === 'approval') {
             approvalReceived = true;
             const approval = data.data;
-            console.log('[index.js] Approval received:', approval);
+            console.log('[index.js] ✅ Approval received:', approval);
             console.log('[index.js] Approval status:', approval.status);
             console.log('[index.js] Redirect type:', approval.redirectType);
             
@@ -82,26 +84,31 @@ export default function Home() {
               alert('Access denied. Please try again.');
             }
           } else if (data.type === 'connected') {
-            console.log('[index.js] SSE connected, waiting for approval...');
+            console.log('[index.js] ✅ SSE connected, waiting for approval...');
           } else {
             console.log('[index.js] ⚠️ Unknown message type:', data.type);
           }
         } catch (error) {
-          console.error('Error parsing SSE message:', error);
+          console.error('[index.js] ❌ Error parsing SSE message:', error);
         }
       };
 
       eventSource.onerror = function(error) {
-        console.error('[index.js] SSE error:', error);
+        console.error('[index.js] ❌ SSE error:', error);
         // Reconnect with exponential backoff for reliability
         if (!approvalReceived && window.approvalEventSource === eventSource) {
           eventSource.close();
           setTimeout(() => {
             if (!approvalReceived) {
+              console.log('[index.js] 🔄 Reconnecting SSE...');
               waitForApprovalSSE(activityId, type, userId);
             }
           }, 1000);
         }
+      };
+      
+      eventSource.onopen = function() {
+        console.log('[index.js] ✅ SSE connection opened successfully');
       };
     }
 
