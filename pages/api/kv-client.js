@@ -218,12 +218,17 @@ export function subscribeMemoryEvents(callback) {
 
 // Trigger all memory subscribers (called from broadcastToSSE)
 export function triggerMemorySubscribers(data) {
-  memoryStore.subscribers.forEach(callback => {
+  console.log(`[kv-client] triggerMemorySubscribers called with:`, data);
+  console.log(`[kv-client] Number of subscribers: ${memoryStore.subscribers.length}`);
+  memoryStore.subscribers.forEach((callback, index) => {
     try {
+      console.log(`[kv-client] Calling subscriber ${index + 1}...`);
       callback(data);
+      console.log(`[kv-client] Subscriber ${index + 1} called successfully`);
     } catch (error) {
-      console.error('Error in memory subscriber callback:', error);
+      console.error(`[kv-client] Error in subscriber ${index + 1}:`, error);
     }
   });
+  console.log(`[kv-client] All ${memoryStore.subscribers.length} subscribers notified`);
 }
 

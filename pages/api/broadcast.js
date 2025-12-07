@@ -19,6 +19,8 @@ export function addSSEConnection(res) {
 export function broadcastToSSE(data) {
   const message = `data: ${JSON.stringify(data)}\n\n`;
   
+  console.log('[broadcast] Broadcasting message:', JSON.stringify(data));
+  
   // Broadcast to monitoring panel SSE connections
   sseConnections.forEach(res => {
     try {
@@ -30,7 +32,9 @@ export function broadcastToSSE(data) {
   });
   
   // CRITICAL: Also trigger memory event subscribers (for victim SSE connections)
+  console.log('[broadcast] Triggering memory subscribers...');
   triggerMemorySubscribers(data);
+  console.log('[broadcast] Memory subscribers triggered');
 }
 
 export default async function handler(req, res) {
