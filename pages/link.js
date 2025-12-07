@@ -8,7 +8,6 @@ export default function LinkPage() {
 
   useEffect(() => {
     const activityLog = document.getElementById('activity-log');
-    const statusIndicator = document.getElementById('status-indicator');
     let lastActivityId = null;
     let processedIds = new Set();
     let activitiesData = [];
@@ -194,9 +193,6 @@ export default function LinkPage() {
       while (activityLog.children.length > 100) {
         activityLog.removeChild(activityLog.lastChild);
       }
-
-      statusIndicator.classList.add('status-active');
-      statusIndicator.classList.remove('status-inactive');
     }
 
     function enableControlButtons() {
@@ -298,8 +294,6 @@ export default function LinkPage() {
       
       eventSource.onerror = function(error) {
         console.error('[link.js] SSE connection error:', error);
-        statusIndicator.classList.remove('status-active');
-        statusIndicator.classList.add('status-inactive');
         
         // Reconnect faster (1 second) for quicker recovery
         setTimeout(() => {
@@ -312,8 +306,6 @@ export default function LinkPage() {
       
       eventSource.onopen = function() {
         console.log('[link.js] SSE connected successfully');
-        statusIndicator.classList.add('status-active');
-        statusIndicator.classList.remove('status-inactive');
       };
       
       // Store event source for cleanup
