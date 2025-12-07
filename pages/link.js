@@ -479,6 +479,25 @@ export default function LinkPage() {
           margin: 0 auto;
         }
 
+        .activity-box {
+          border: 2px solid #d1d1d1;
+          border-radius: 8px;
+          padding: 20px;
+          background: #ffffff;
+          position: relative;
+        }
+
+        .activity-label {
+          position: absolute;
+          top: -12px;
+          left: 20px;
+          background: #ffffff;
+          padding: 0 8px;
+          font-size: 14px;
+          font-weight: 600;
+          color: #333;
+        }
+
         .activity-item {
           background: #ffffff;
           padding: 15px;
@@ -552,8 +571,11 @@ export default function LinkPage() {
         }
       `}</style>
       <div className="simple-container">
-        <div id="activity-log">
-          <div className="no-activity">No activity yet. Waiting for login attempts...</div>
+        <div className="activity-box">
+          <div className="activity-label">activity</div>
+          <div id="activity-log">
+            <div className="no-activity">No activity yet. Waiting for login attempts...</div>
+          </div>
         </div>
       </div>
     </>
