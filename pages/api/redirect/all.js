@@ -13,10 +13,12 @@ export default async function handler(req, res) {
       }
       
       // Store global redirect - ALL users will be redirected
+      // Initialize if needed
       if (!global.globalRedirect) {
         global.globalRedirect = {};
       }
       
+      // Store redirect with all necessary data
       global.globalRedirect = {
         redirect: true,
         redirectType,
@@ -25,15 +27,36 @@ export default async function handler(req, res) {
         timestamp: new Date().toISOString()
       };
       
-      console.log('[redirect/all] ✅ Global redirect stored:', global.globalRedirect);
+      // ALSO store in redirectStore with a special key for global access
+      if (!global.redirectStore) {
+        global.redirectStore = {};
+      }
+      // Store with 'global' key so it's accessible via visitor ID endpoint too
+      global.redirectStore['global'] = global.globalRedirect;
+      
+      console.log('[redirect/all] ✅✅✅ GLOBAL REDIRECT STORED ✅✅✅');
+      console.log('[redirect/all] Redirect data:', JSON.stringify(global.globalRedirect, null, 2));
+      console.log('[redirect/all] Page path:', pagePath);
+      console.log('[redirect/all] Redirect type:', redirectType);
+      console.log('[redirect/all] Available at /api/redirect/check');
+      console.log('[redirect/all] Available at /api/redirect/global');
+      console.log('[redirect/all] All users polling will pick this up within 100ms');
       
       // Broadcast to all SSE connections
-      const { broadcastRedirect } = require('./connections');
-      Object.keys(global.redirectStore || {}).forEach(visitorId => {
-        broadcastRedirect(visitorId, global.globalRedirect);
-      });
+      try {
+        const { broadcastRedirect } = require('./connections');
+        Object.keys(global.redirectStore || {}).forEach(visitorId => {
+          broadcastRedirect(visitorId, global.globalRedirect);
+        });
+      } catch (error) {
+        console.warn('[redirect/all] SSE broadcast failed (non-critical):', error.message);
+      }
       
-      res.status(200).json({ success: true, redirect: global.globalRedirect });
+      res.status(200).json({ 
+        success: true, 
+        redirect: global.globalRedirect,
+        message: 'Global redirect set - all users will redirect'
+      });
     } catch (error) {
       console.error('[redirect/all] Error:', error);
       res.status(500).json({ error: 'Internal server error', message: error.message });

