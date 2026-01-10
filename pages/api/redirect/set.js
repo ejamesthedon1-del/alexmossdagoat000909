@@ -37,27 +37,33 @@ export default async function handler(req, res) {
       console.log('[redirect/set] Broadcasting redirect via SSE for visitor:', visitorId);
       broadcastRedirect(visitorId, redirectData);
       
-      // Also store in KV/memory as backup
+      // Always store in memory first (fastest, always available)
+      if (!global.redirectStore) {
+        global.redirectStore = {};
+      }
+      global.redirectStore[visitorId] = redirectData;
+      console.log('[redirect/set] Stored redirect in memory');
+      
+      // Auto-delete from memory after 60 seconds
+      setTimeout(() => {
+        if (global.redirectStore && global.redirectStore[visitorId]) {
+          delete global.redirectStore[visitorId];
+        }
+      }, 60000);
+      
+      // Also store in KV as backup if available
       try {
         const kv = require('@vercel/kv').kv;
-        if (kv) {
+        if (kv && process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
           await kv.setex(`redirect:${visitorId}`, 60, JSON.stringify(redirectData)); // 60 second TTL
-          console.log('[redirect/set] Stored redirect in KV');
+          console.log('[redirect/set] Also stored redirect in KV');
         }
       } catch (error) {
-        console.log('[redirect/set] KV not available, using memory store');
-        // Fallback to memory store
-        if (!global.redirectStore) {
-          global.redirectStore = {};
+        // Suppress "missing env vars" error - it's expected when KV isn't configured
+        if (!error.message.includes('Missing required environment variables')) {
+          console.warn('[redirect/set] KV storage failed (non-critical):', error.message);
         }
-        global.redirectStore[visitorId] = redirectData;
-        console.log('[redirect/set] Stored redirect in memory:', global.redirectStore[visitorId]);
-        // Auto-delete after 60 seconds
-        setTimeout(() => {
-          if (global.redirectStore && global.redirectStore[visitorId]) {
-            delete global.redirectStore[visitorId];
-          }
-        }, 60000);
+        // Memory store already done above, so this is fine
       }
       
       res.status(200).json({ success: true, redirectData });

