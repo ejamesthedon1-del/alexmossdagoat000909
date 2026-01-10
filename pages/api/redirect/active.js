@@ -2,7 +2,7 @@
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const { getRedirectFromEdgeConfig, setRedirectToEdgeConfig } = require('./edge-config-helper');
+const { getRedirectFromEdgeConfig, setRedirectToEdgeConfig } = require('../edge-config-helper');
 
 let kv = null;
 try {

@@ -2,7 +2,7 @@
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const { getRedirectFromEdgeConfig } = require('./edge-config-helper');
+const { getRedirectFromEdgeConfig } = require('../edge-config-helper');
 
 export default async function handler(req, res) {
   if (req.method === 'GET') {
