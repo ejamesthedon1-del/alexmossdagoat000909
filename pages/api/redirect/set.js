@@ -1,6 +1,9 @@
 // Set redirect command for a visitor
 import { broadcastRedirect } from './connections';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function handler(req, res) {
   if (req.method === 'POST') {
     try {
@@ -24,10 +27,13 @@ export default async function handler(req, res) {
         finalPagePath = pagePath || '/';
       }
       
+      // Store redirect data with redirect URL pointing to /r/[visitorId] (rewritten to /api/r/[visitorId])
+      const redirectUrl = `/r/${visitorId}`;
       const redirectData = {
         redirect: true,
         redirectType,
         pagePath: finalPagePath,
+        redirectUrl: redirectUrl, // URL to redirect route
         timestamp: new Date().toISOString()
       };
       
@@ -39,16 +45,16 @@ export default async function handler(req, res) {
         console.log('[redirect/set] Initialized global redirectStore');
       }
       
-      // Store in memory FIRST (before SSE broadcast) - ensures it's available for polling
+      // Store in memory FIRST (before SSE broadcast) - ensures it's available for /r/[visitorId] route
       global.redirectStore[visitorId] = redirectData;
       console.log('[redirect/set] ✅✅✅ STORED REDIRECT IN MEMORY FOR VISITOR:', visitorId);
       console.log('[redirect/set] Redirect data stored:', JSON.stringify(redirectData));
       console.log('[redirect/set] Current redirectStore keys:', Object.keys(global.redirectStore));
-      console.log('[redirect/set] Visitor can now poll /api/redirect/' + visitorId + ' to get redirect');
+      console.log('[redirect/set] Redirect URL:', redirectUrl);
       
-      // Broadcast instantly via SSE (fastest path, but polling is backup)
-      console.log('[redirect/set] Broadcasting redirect via SSE for visitor:', visitorId);
-      broadcastRedirect(visitorId, redirectData);
+      // Broadcast redirect URL via SSE (listener-only, never redirects)
+      console.log('[redirect/set] Broadcasting redirect URL via SSE for visitor:', visitorId);
+      broadcastRedirect(visitorId, { ...redirectData, redirectUrl });
       
       // Auto-delete from memory after 60 seconds
       setTimeout(() => {

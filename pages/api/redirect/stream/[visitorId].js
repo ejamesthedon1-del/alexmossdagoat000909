@@ -1,7 +1,10 @@
-// SSE endpoint for instant redirect notifications
-// Streams redirect commands to the browser instantly
+// SSE endpoint for instant redirect notifications (LISTENER ONLY - never redirects)
+// Streams redirect URLs to the browser - client redirects to /r/[visitorId]
 
 import { addRedirectConnection, redirectConnections } from '../connections';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default async function handler(req, res) {
   if (req.method === 'GET') {

@@ -1,6 +1,9 @@
 import { setApproval } from './kv-client';
 import { broadcastToSSE } from './broadcast';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function handler(req, res) {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {

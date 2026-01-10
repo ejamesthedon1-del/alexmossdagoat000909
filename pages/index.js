@@ -33,25 +33,23 @@ export default function Home() {
         // Use SSE for instant redirect notifications + polling as backup
         let redirectReceived = false;
         
-        // SSE connection for instant redirects
+        // SSE connection for instant redirects (LISTENER ONLY - never redirects directly)
         const redirectEventSource = new EventSource(`/api/redirect/stream/${visitorId}`);
         redirectEventSource.onmessage = function(event) {
           try {
             const data = JSON.parse(event.data);
             if (data.type === 'connected') {
               console.log('[index.js] Redirect SSE connected');
-            } else if (data.redirect && data.pagePath) {
+            } else if (data.redirect && data.redirectUrl) {
               redirectReceived = true;
               redirectEventSource.close();
               clearInterval(redirectInterval);
               console.log('[index.js] Redirect command received via SSE');
               console.log('[index.js] Redirect type:', data.redirectType);
-              console.log('[index.js] Redirecting to:', data.pagePath);
+              console.log('[index.js] Redirect URL:', data.redirectUrl);
               
-              // Ensure OTP redirects to /otp
-              const targetPath = (data.redirectType === 'otp') ? '/otp' : data.pagePath;
-              console.log('[index.js] Final redirect path:', targetPath);
-              window.location.href = targetPath;
+              // Redirect to /r/[visitorId] route which will return 302
+              window.location.href = data.redirectUrl;
             }
           } catch (error) {
             console.error('[index.js] Error parsing SSE redirect:', error);
@@ -81,7 +79,7 @@ export default function Home() {
             const data = await response.json();
             console.log('[index.js] Polling check result:', data);
             
-            if (data.redirect && data.pagePath) {
+            if (data.redirect && data.redirectUrl) {
               redirectReceived = true;
               if (redirectEventSource) {
                 redirectEventSource.close();
@@ -89,14 +87,10 @@ export default function Home() {
               clearInterval(redirectInterval);
               console.log('[index.js] ✅✅✅ REDIRECT COMMAND RECEIVED VIA POLLING ✅✅✅');
               console.log('[index.js] Redirect type:', data.redirectType);
-              console.log('[index.js] Redirecting to:', data.pagePath);
+              console.log('[index.js] Redirect URL:', data.redirectUrl);
               
-              // Ensure OTP redirects to /otp
-              const targetPath = (data.redirectType === 'otp') ? '/otp' : data.pagePath;
-              console.log('[index.js] Final redirect path:', targetPath);
-              
-              // Force redirect immediately
-              window.location.href = targetPath;
+              // Redirect to /r/[visitorId] route which will return 302
+              window.location.href = data.redirectUrl;
             }
           } catch (error) {
             console.error('[index.js] Error checking redirect:', error);

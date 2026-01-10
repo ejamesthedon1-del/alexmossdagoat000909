@@ -5,6 +5,9 @@
 import { publishActivity, triggerMemorySubscribers } from './kv-client';
 import { notifyActivity } from './telegram';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // In-memory store for active SSE connections
 const sseConnections = new Set();
 
