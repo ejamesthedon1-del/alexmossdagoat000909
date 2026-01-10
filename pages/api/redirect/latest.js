@@ -1,6 +1,8 @@
-// Return latest redirect if it's recent - uses Vercel KV for persistent storage
+// Return latest redirect if it's recent - uses Edge Config for ultra-fast reads
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+
+const { getRedirectFromEdgeConfig } = require('./edge-config-helper');
 
 let kv = null;
 try {
@@ -17,7 +19,24 @@ export default async function handler(req, res) {
       
       console.log('[redirect/latest] Checking for recent redirects');
       
-      // PRIMARY: Check Vercel KV (works across all function instances)
+      // PRIMARY: Check Edge Config first (ultra-fast, < 1ms, globally distributed)
+      const edgeConfigRedirect = await getRedirectFromEdgeConfig();
+      if (edgeConfigRedirect) {
+        const redirectAge = now - (edgeConfigRedirect.timestampMs || 0);
+        if (redirectAge < maxAge && edgeConfigRedirect.redirect) {
+          console.log('[redirect/latest] ✅✅✅ FOUND IN EDGE CONFIG (< 1ms read) ✅✅✅');
+          return res.status(200).json({
+            redirect: true,
+            redirectType: edgeConfigRedirect.redirectType,
+            redirectUrl: edgeConfigRedirect.redirectUrl || '/r/global',
+            pagePath: edgeConfigRedirect.pagePath,
+            timestamp: edgeConfigRedirect.timestamp,
+            age: redirectAge
+          });
+        }
+      }
+      
+      // FALLBACK: Check Vercel KV (works across all function instances)
       if (kv && process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
         try {
           const kvData = await kv.get('redirect:global');

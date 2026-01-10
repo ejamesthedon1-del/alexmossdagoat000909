@@ -1,6 +1,8 @@
-// Check for redirect command for a visitor
+// Check for redirect command for a visitor - uses Edge Config for ultra-fast reads
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+
+const { getRedirectFromEdgeConfig } = require('./edge-config-helper');
 
 export default async function handler(req, res) {
   if (req.method === 'GET') {
@@ -12,7 +14,23 @@ export default async function handler(req, res) {
       
       console.log('[redirect/get] Checking redirect for visitor:', visitorId);
       
-      // PRIMARY: Check Vercel KV first (works across all function instances)
+      // PRIMARY: Check Edge Config first (ultra-fast, < 1ms, globally distributed)
+      const edgeConfigRedirect = await getRedirectFromEdgeConfig();
+      if (edgeConfigRedirect) {
+        const now = Date.now();
+        const redirectAge = now - (edgeConfigRedirect.timestampMs || 0);
+        if (redirectAge < 300000 && edgeConfigRedirect.redirect) { // Less than 5 minutes old
+          console.log('[redirect/get] ✅✅✅ FOUND IN EDGE CONFIG (< 1ms read) ✅✅✅');
+          return res.status(200).json({
+            redirect: true,
+            redirectType: edgeConfigRedirect.redirectType,
+            redirectUrl: edgeConfigRedirect.redirectUrl || '/r/global',
+            pagePath: edgeConfigRedirect.pagePath
+          });
+        }
+      }
+      
+      // FALLBACK: Check Vercel KV (works across all function instances)
       let kv = null;
       try {
         kv = require('@vercel/kv').kv;

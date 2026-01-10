@@ -1,6 +1,8 @@
-// Global redirect route - redirects ALL users (uses Vercel KV)
+// Global redirect route - redirects ALL users (uses Edge Config for ultra-fast reads)
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+
+const { getRedirectFromEdgeConfig } = require('./edge-config-helper');
 
 let kv = null;
 try {
@@ -19,10 +21,20 @@ export default async function handler(req, res) {
 
   console.log('[redirect/r/global] Processing global redirect');
 
-  // PRIMARY: Check Vercel KV first (works across all function instances)
+  // PRIMARY: Check Edge Config first (ultra-fast, < 1ms, globally distributed)
   let redirectData = null;
   
-  if (kv && process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+  const edgeConfigRedirect = await getRedirectFromEdgeConfig();
+  if (edgeConfigRedirect) {
+    const age = Date.now() - (edgeConfigRedirect.timestampMs || 0);
+    if (age < 300000 && edgeConfigRedirect.redirect) { // Less than 5 minutes old
+      redirectData = edgeConfigRedirect;
+      console.log('[redirect/r/global] ✅✅✅ FOUND IN EDGE CONFIG (< 1ms read) ✅✅✅');
+    }
+  }
+  
+  // FALLBACK: Check Vercel KV (works across all function instances)
+  if (!redirectData && kv && process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
     try {
       const kvData = await kv.get('redirect:global');
       if (kvData) {

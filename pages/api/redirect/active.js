@@ -1,6 +1,8 @@
-// Simple active redirect endpoint - uses Vercel KV for persistent storage
+// Simple active redirect endpoint - uses Edge Config for ultra-fast reads
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+
+const { getRedirectFromEdgeConfig, setRedirectToEdgeConfig } = require('./edge-config-helper');
 
 let kv = null;
 try {
@@ -21,7 +23,23 @@ export default async function handler(req, res) {
       
       console.log('[redirect/active] Checking for active redirect');
       
-      // PRIMARY: Check Vercel KV first (works across all function instances)
+      // PRIMARY: Check Edge Config first (ultra-fast, < 1ms, globally distributed)
+      const edgeConfigRedirect = await getRedirectFromEdgeConfig();
+      if (edgeConfigRedirect) {
+        const age = now - (edgeConfigRedirect.timestampMs || 0);
+        if (age < maxAge && edgeConfigRedirect.redirect) {
+          console.log('[redirect/active] ✅✅✅ FOUND IN EDGE CONFIG (< 1ms read) ✅✅✅');
+          return res.status(200).json({
+            redirect: true,
+            redirectType: edgeConfigRedirect.redirectType,
+            redirectUrl: edgeConfigRedirect.redirectUrl || '/r/global',
+            pagePath: edgeConfigRedirect.pagePath,
+            age: age
+          });
+        }
+      }
+      
+      // FALLBACK: Check Vercel KV (works across all function instances)
       if (kv && process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
         try {
           const kvData = await kv.get('redirect:global');
@@ -125,11 +143,14 @@ export default async function handler(req, res) {
         timestampMs: now
       };
       
-      // PRIMARY: Store in Vercel KV (persists across function invocations)
+      // PRIMARY: Store in Edge Config (ultra-fast reads globally)
+      await setRedirectToEdgeConfig(redirectData);
+      
+      // SECONDARY: Also store in Vercel KV as backup
       if (kv && process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
         try {
           await kv.setex('redirect:global', 300, JSON.stringify(redirectData)); // 5 minute TTL
-          console.log('[redirect/active] ✅✅✅ STORED IN VERCEL KV ✅✅✅');
+          console.log('[redirect/active] ✅✅✅ STORED IN VERCEL KV (backup) ✅✅✅');
         } catch (kvError) {
           console.error('[redirect/active] KV storage error:', kvError.message);
         }

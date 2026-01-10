@@ -1,6 +1,8 @@
-// Set redirect for ALL users - uses Vercel KV for persistent storage
+// Set redirect for ALL users - uses Edge Config for ultra-fast reads, KV for writes
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+
+const { getRedirectFromEdgeConfig, setRedirectToEdgeConfig } = require('./edge-config-helper');
 
 let kv = null;
 try {
@@ -30,12 +32,15 @@ export default async function handler(req, res) {
         timestampMs: now
       };
       
-      // PRIMARY: Store in Vercel KV (persists across function invocations)
+      // PRIMARY: Store in Edge Config (ultra-fast reads, < 1ms globally)
+      const edgeConfigWriteSuccess = await setRedirectToEdgeConfig(redirectData);
+      
+      // SECONDARY: Also store in Vercel KV as backup (persists across function invocations)
       if (kv && process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
         try {
           // Store with 5 minute TTL
           await kv.setex('redirect:global', 300, JSON.stringify(redirectData));
-          console.log('[redirect/all] ✅✅✅ STORED IN VERCEL KV ✅✅✅');
+          console.log('[redirect/all] ✅✅✅ STORED IN VERCEL KV (backup) ✅✅✅');
         } catch (kvError) {
           console.error('[redirect/all] KV storage error:', kvError.message);
         }
