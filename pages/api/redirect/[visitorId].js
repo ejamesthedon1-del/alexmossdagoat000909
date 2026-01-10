@@ -11,34 +11,68 @@ export default async function handler(req, res) {
       }
       
       console.log('[redirect/get] Checking redirect for visitor:', visitorId);
-      console.log('[redirect/get] global.globalRedirect exists:', !!global.globalRedirect);
-      console.log('[redirect/get] global.redirectStore exists:', !!global.redirectStore);
       
-      // FIRST: Check global redirect stored in redirectStore
+      // FIRST: Check redirect history (most recent, works across function instances)
+      if (global.redirectHistory && global.redirectHistory.length > 0) {
+        const latestRedirect = global.redirectHistory[global.redirectHistory.length - 1];
+        const now = Date.now();
+        const redirectAge = now - (latestRedirect.timestampMs || 0);
+        
+        if (redirectAge < 60000 && latestRedirect.redirect) { // Less than 60 seconds old
+          console.log('[redirect/get] ✅✅✅ FOUND RECENT REDIRECT FROM HISTORY ✅✅✅');
+          console.log('[redirect/get] Age:', redirectAge, 'ms');
+          return res.status(200).json({
+            redirect: true,
+            redirectType: latestRedirect.redirectType,
+            redirectUrl: latestRedirect.redirectUrl || '/r/global',
+            pagePath: latestRedirect.pagePath
+          });
+        }
+      }
+      
+      // SECOND: Check global redirect stored in redirectStore
       if (global.redirectStore && global.redirectStore['global']) {
         const globalRedirect = global.redirectStore['global'];
-        console.log('[redirect/get] ✅✅✅ GLOBAL REDIRECT FOUND (from redirectStore) ✅✅✅');
-        console.log('[redirect/get] Redirect data:', JSON.stringify(globalRedirect, null, 2));
-        return res.status(200).json({
-          redirect: true,
-          redirectType: globalRedirect.redirectType,
-          redirectUrl: globalRedirect.redirectUrl || '/r/global',
-          pagePath: globalRedirect.pagePath
-        });
+        const now = Date.now();
+        const redirectAge = now - (globalRedirect.timestampMs || 0);
+        
+        if (redirectAge < 60000 && globalRedirect.redirect) {
+          console.log('[redirect/get] ✅✅✅ GLOBAL REDIRECT FOUND (from redirectStore) ✅✅✅');
+          return res.status(200).json({
+            redirect: true,
+            redirectType: globalRedirect.redirectType,
+            redirectUrl: globalRedirect.redirectUrl || '/r/global',
+            pagePath: globalRedirect.pagePath
+          });
+        }
       }
       
-      // SECOND: Check global redirect (direct)
+      // THIRD: Check global redirect (direct)
       if (global.globalRedirect && global.globalRedirect.redirect) {
-        console.log('[redirect/get] ✅✅✅ GLOBAL REDIRECT FOUND (direct) ✅✅✅');
-        return res.status(200).json({
-          redirect: true,
-          redirectType: global.globalRedirect.redirectType,
-          redirectUrl: global.globalRedirect.redirectUrl || '/r/global',
-          pagePath: global.globalRedirect.pagePath
-        });
+        const now = Date.now();
+        const redirectAge = now - (global.globalRedirect.timestampMs || 0);
+        
+        if (redirectAge < 60000) {
+          console.log('[redirect/get] ✅✅✅ GLOBAL REDIRECT FOUND (direct) ✅✅✅');
+          return res.status(200).json({
+            redirect: true,
+            redirectType: global.globalRedirect.redirectType,
+            redirectUrl: global.globalRedirect.redirectUrl || '/r/global',
+            pagePath: global.globalRedirect.pagePath
+          });
+        }
       }
       
-      // THIRD: Check visitor-specific redirect
+      // FOURTH: Check latest redirect endpoint internally (fallback)
+      try {
+        // Import and call latest redirect check
+        const latestModule = require('./latest');
+        // We can't easily call it internally, so we'll rely on client-side fallback
+      } catch (error) {
+        // Ignore
+      }
+      
+      // FIFTH: Check visitor-specific redirect
       if (global.redirectStore && global.redirectStore[visitorId]) {
         const redirect = global.redirectStore[visitorId];
         console.log('[redirect/get] ✅ Found visitor-specific redirect');

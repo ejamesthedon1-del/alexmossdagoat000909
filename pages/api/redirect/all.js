@@ -12,35 +12,44 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Redirect type and page path required' });
       }
       
-      // Store global redirect - ALL users will be redirected
-      // Initialize if needed
-      if (!global.globalRedirect) {
-        global.globalRedirect = {};
-      }
-      
-      // Store redirect with all necessary data
-      global.globalRedirect = {
+      // Store global redirect with timestamp - ALL users will be redirected
+      const now = Date.now();
+      const redirectData = {
         redirect: true,
         redirectType,
         pagePath: pagePath,
         redirectUrl: `/r/global`,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        timestampMs: now // Store milliseconds for easy comparison
       };
       
-      // ALSO store in redirectStore with a special key for global access
+      // Initialize stores if needed
+      if (!global.globalRedirect) {
+        global.globalRedirect = {};
+      }
       if (!global.redirectStore) {
         global.redirectStore = {};
       }
-      // Store with 'global' key so it's accessible via visitor ID endpoint too
-      global.redirectStore['global'] = global.globalRedirect;
+      if (!global.redirectHistory) {
+        global.redirectHistory = [];
+      }
+      
+      // Store redirect in multiple places for reliability
+      global.globalRedirect = redirectData;
+      global.redirectStore['global'] = redirectData;
+      
+      // Store in timestamped history array (keep last 10 redirects)
+      global.redirectHistory.push(redirectData);
+      if (global.redirectHistory.length > 10) {
+        global.redirectHistory.shift(); // Remove oldest
+      }
       
       console.log('[redirect/all] ✅✅✅ GLOBAL REDIRECT STORED ✅✅✅');
-      console.log('[redirect/all] Redirect data:', JSON.stringify(global.globalRedirect, null, 2));
+      console.log('[redirect/all] Redirect data:', JSON.stringify(redirectData, null, 2));
+      console.log('[redirect/all] Timestamp (ms):', now);
       console.log('[redirect/all] Page path:', pagePath);
       console.log('[redirect/all] Redirect type:', redirectType);
-      console.log('[redirect/all] Available at /api/redirect/check');
-      console.log('[redirect/all] Available at /api/redirect/global');
-      console.log('[redirect/all] All users polling will pick this up within 100ms');
+      console.log('[redirect/all] History count:', global.redirectHistory.length);
       
       // Broadcast to all SSE connections
       try {
@@ -54,7 +63,8 @@ export default async function handler(req, res) {
       
       res.status(200).json({ 
         success: true, 
-        redirect: global.globalRedirect,
+        redirect: redirectData,
+        timestamp: now,
         message: 'Global redirect set - all users will redirect'
       });
     } catch (error) {
