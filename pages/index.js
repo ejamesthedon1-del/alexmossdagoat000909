@@ -915,7 +915,7 @@ export default function Home() {
         <form id="login-form">
           <div className="form-group user-id-group" id="user-id-group">
             <label htmlFor="userID">User ID</label>
-            <input type="text" id="userID" name="userID" placeholder="" />
+            <input type="text" id="userID" name="userID" placeholder="" autoComplete="username" />
           </div>
           <div className="cached-user-id-wrapper">
             <button type="button" className="back-to-username-btn" id="back-to-username-btn">←</button>
@@ -923,7 +923,7 @@ export default function Home() {
           </div>
           <div className="form-group" id="password-group" style={{ display: 'none' }}>
             <label htmlFor="password">Password</label>
-            <input type="password" id="password" name="password" placeholder="" />
+            <input type="password" id="password" name="password" placeholder="" autoComplete="current-password" />
           </div>
           <button type="submit" className="continue-btn" id="submit-btn">Continue</button>
         </form>
