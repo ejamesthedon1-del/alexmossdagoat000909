@@ -19,31 +19,14 @@ Complete guide to deploy and configure your project on Vercel for production.
 
 Your project will be deployed and you'll get a URL like: `https://your-project.vercel.app`
 
-## Step 2: Set Up Vercel KV (Optional but Recommended)
+## Step 2: Storage
 
-Vercel KV provides persistent storage for activities and approvals. Without it, data is stored in memory (lost on server restart).
+The app uses **in-memory storage** only. No database setup required!
 
-### Option A: Set Up Vercel KV
-
-1. In Vercel Dashboard, go to your project
-2. Click **"Storage"** tab
-3. Click **"Create Database"**
-4. Select **"KV"** (Key-Value)
-5. Choose a name and region
-6. Click **"Create"**
-
-Vercel will automatically set these environment variables:
-- `KV_REST_API_URL`
-- `KV_REST_API_TOKEN`
-
-**Note:** These are set automatically - you don't need to add them manually!
-
-### Option B: Skip KV (Use Memory Store)
-
-If you skip KV setup, the app will use in-memory storage. This works but:
-- Data is lost when serverless functions restart
-- Not suitable for high-traffic production
-- Fine for testing or low-traffic sites
+- All data (activities, approvals, redirects) is stored in memory
+- Data persists during the function execution but is lost on serverless function restart
+- This is fine for the redirect flow since redirects are processed immediately
+- For activities/approvals, data is available during the session
 
 ## Step 3: Configure Environment Variables
 
@@ -69,11 +52,6 @@ NEXT_PUBLIC_APP_URL=https://your-project.vercel.app
 
 **Note:** If not set, the app auto-detects the URL from request headers.
 
-### KV Variables (Auto-Set)
-
-If you set up Vercel KV, these are automatically added:
-- `KV_REST_API_URL` ✅ (auto-set)
-- `KV_REST_API_TOKEN` ✅ (auto-set)
 
 ## Step 4: Set Up Telegram Webhook
 
@@ -124,7 +102,6 @@ Should show:
 ## Step 6: Production Checklist
 
 - [ ] Project deployed to Vercel
-- [ ] Vercel KV set up (optional but recommended)
 - [ ] `TELEGRAM_BOT_TOKEN` environment variable set
 - [ ] `TELEGRAM_CHAT_ID` environment variable set
 - [ ] Telegram webhook configured to production URL
@@ -134,12 +111,6 @@ Should show:
 - [ ] No console errors in production
 
 ## Troubleshooting
-
-### Issue: "KV_REST_API_URL not found" errors
-
-**Solution:** This is normal if you haven't set up Vercel KV. The app will use memory storage. To fix:
-1. Set up Vercel KV (Step 2 above)
-2. Or ignore the warnings - memory storage works fine
 
 ### Issue: Telegram notifications not working
 
@@ -170,8 +141,6 @@ Should show:
 | `TELEGRAM_BOT_TOKEN` | ✅ Yes | ❌ No | Your Telegram bot token |
 | `TELEGRAM_CHAT_ID` | ✅ Yes | ❌ No | Your Telegram chat ID |
 | `NEXT_PUBLIC_APP_URL` | ⚠️ Optional | ❌ No | Your production URL (auto-detected if not set) |
-| `KV_REST_API_URL` | ⚠️ Optional | ✅ Yes | Set automatically when KV is linked |
-| `KV_REST_API_TOKEN` | ⚠️ Optional | ✅ Yes | Set automatically when KV is linked |
 
 ## Production URLs
 

@@ -1,15 +1,8 @@
 // SSE endpoint for monitoring panel
 // Streams activities in real-time to connected clients
 
-import { getRecentActivities } from './kv-client';
+import { getRecentActivities, subscribeMemoryEvents } from './kv-client';
 import { addSSEConnection, broadcastToSSE } from './broadcast';
-
-let kv;
-try {
-  kv = require('@vercel/kv').kv;
-} catch (error) {
-  kv = null;
-}
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -38,35 +31,14 @@ export default async function handler(req, res) {
     console.error('Error sending recent activities:', error);
   }
   
-  let subscriber = null;
-  let unsubscribeMemory = null;
-  
-  // Subscribe to activities
-  if (kv) {
+  // Subscribe to memory events
+  const unsubscribeMemory = subscribeMemoryEvents((data) => {
     try {
-      subscriber = kv.duplicate();
-      await subscriber.subscribe('activities', (message) => {
-        try {
-          const data = JSON.parse(message);
-          res.write(`data: ${JSON.stringify(data)}\n\n`);
-        } catch (error) {
-          console.error('Error parsing pub/sub message:', error);
-        }
-      });
+      res.write(`data: ${JSON.stringify(data)}\n\n`);
     } catch (error) {
-      console.error('Error subscribing to KV:', error);
+      console.error('Error writing SSE message:', error);
     }
-  } else {
-    // Fallback: use memory subscription
-    const { subscribeMemoryEvents } = require('./kv-client');
-    unsubscribeMemory = subscribeMemoryEvents((data) => {
-      try {
-        res.write(`data: ${JSON.stringify(data)}\n\n`);
-      } catch (error) {
-        console.error('Error writing SSE message:', error);
-      }
-    });
-  }
+  });
   
   // Keep connection alive with heartbeat (more frequent to detect disconnections faster)
   const heartbeat = setInterval(() => {
@@ -74,7 +46,6 @@ export default async function handler(req, res) {
       res.write(': heartbeat\n\n');
     } catch (error) {
       clearInterval(heartbeat);
-      if (subscriber) subscriber.unsubscribe('activities');
       if (unsubscribeMemory) unsubscribeMemory();
       res.end();
     }
@@ -83,7 +54,6 @@ export default async function handler(req, res) {
   // Cleanup on client disconnect
   req.on('close', () => {
     clearInterval(heartbeat);
-    if (subscriber) subscriber.unsubscribe('activities');
     if (unsubscribeMemory) unsubscribeMemory();
     res.end();
   });

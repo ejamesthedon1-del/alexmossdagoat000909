@@ -33,38 +33,30 @@ export default async function handler(req, res) {
       
       console.log('[redirect/set] Redirect data:', redirectData);
       
-      // Broadcast instantly via SSE (fastest path)
-      console.log('[redirect/set] Broadcasting redirect via SSE for visitor:', visitorId);
-      broadcastRedirect(visitorId, redirectData);
-      
-      // Always store in memory first (fastest, always available)
+      // CRITICAL: Initialize global store if it doesn't exist
       if (!global.redirectStore) {
         global.redirectStore = {};
+        console.log('[redirect/set] Initialized global redirectStore');
       }
+      
+      // Store in memory FIRST (before SSE broadcast) - ensures it's available for polling
       global.redirectStore[visitorId] = redirectData;
-      console.log('[redirect/set] Stored redirect in memory');
+      console.log('[redirect/set] ✅✅✅ STORED REDIRECT IN MEMORY FOR VISITOR:', visitorId);
+      console.log('[redirect/set] Redirect data stored:', JSON.stringify(redirectData));
+      console.log('[redirect/set] Current redirectStore keys:', Object.keys(global.redirectStore));
+      console.log('[redirect/set] Visitor can now poll /api/redirect/' + visitorId + ' to get redirect');
+      
+      // Broadcast instantly via SSE (fastest path, but polling is backup)
+      console.log('[redirect/set] Broadcasting redirect via SSE for visitor:', visitorId);
+      broadcastRedirect(visitorId, redirectData);
       
       // Auto-delete from memory after 60 seconds
       setTimeout(() => {
         if (global.redirectStore && global.redirectStore[visitorId]) {
+          console.log('[redirect/set] Auto-deleting redirect for visitor:', visitorId);
           delete global.redirectStore[visitorId];
         }
       }, 60000);
-      
-      // Also store in KV as backup if available
-      try {
-        const kv = require('@vercel/kv').kv;
-        if (kv && process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
-          await kv.setex(`redirect:${visitorId}`, 60, JSON.stringify(redirectData)); // 60 second TTL
-          console.log('[redirect/set] Also stored redirect in KV');
-        }
-      } catch (error) {
-        // Suppress "missing env vars" error - it's expected when KV isn't configured
-        if (!error.message.includes('Missing required environment variables')) {
-          console.warn('[redirect/set] KV storage failed (non-critical):', error.message);
-        }
-        // Memory store already done above, so this is fine
-      }
       
       res.status(200).json({ success: true, redirectData });
     } catch (error) {

