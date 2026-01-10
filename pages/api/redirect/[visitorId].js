@@ -12,22 +12,32 @@ export default async function handler(req, res) {
       
       console.log('[redirect/get] Checking redirect for visitor:', visitorId);
       
-      // Check memory store - return redirect URL (not pagePath)
+      // FIRST: Check global redirect (for ALL users)
+      if (global.globalRedirect && global.globalRedirect.redirect) {
+        console.log('[redirect/get] ✅ GLOBAL REDIRECT FOUND - redirecting ALL users');
+        const response = {
+          redirect: true,
+          redirectType: global.globalRedirect.redirectType,
+          redirectUrl: global.globalRedirect.redirectUrl || '/r/global',
+          pagePath: global.globalRedirect.pagePath
+        };
+        return res.status(200).json(response);
+      }
+      
+      // SECOND: Check visitor-specific redirect
       if (global.redirectStore && global.redirectStore[visitorId]) {
         const redirect = global.redirectStore[visitorId];
-        console.log('[redirect/get] Found redirect in memory:', redirect);
-        // Return redirect URL pointing to /r/[visitorId] route (rewritten to /api/r/[visitorId])
+        console.log('[redirect/get] ✅ Found visitor-specific redirect');
         const response = {
           redirect: true,
           redirectType: redirect.redirectType,
           redirectUrl: redirect.redirectUrl || `/r/${visitorId}`,
           pagePath: redirect.pagePath
         };
-        // Don't delete here - let /r/[visitorId] delete it
         return res.status(200).json(response);
       }
       
-      console.log('[redirect/get] No redirect found for visitor:', visitorId);
+      console.log('[redirect/get] No redirect found');
       res.status(200).json({ redirect: false });
     } catch (error) {
       console.error('Error getting redirect:', error);

