@@ -1,9 +1,15 @@
-// Simple active redirect endpoint - SIMPLIFIED for Vercel stateless functions
-// Since Vercel functions are stateless, we check ALL possible storage locations
+// Simple active redirect endpoint - uses Vercel KV for persistent storage
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-// Module-level state (only works within same function instance, but better than nothing)
+let kv = null;
+try {
+  kv = require('@vercel/kv').kv;
+} catch (error) {
+  console.warn('[redirect/active] KV not available:', error.message);
+}
+
+// Module-level state (fallback for same function instance)
 let activeRedirect = null;
 let redirectSetTime = 0;
 
@@ -15,7 +21,30 @@ export default async function handler(req, res) {
       
       console.log('[redirect/active] Checking for active redirect');
       
-      // Check 1: Module-level variable (works if same function instance)
+      // PRIMARY: Check Vercel KV first (works across all function instances)
+      if (kv && process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+        try {
+          const kvData = await kv.get('redirect:global');
+          if (kvData) {
+            const redirectData = JSON.parse(kvData);
+            const age = now - (redirectData.timestampMs || 0);
+            if (age < maxAge && redirectData.redirect) {
+              console.log('[redirect/active] ✅✅✅ FOUND IN VERCEL KV ✅✅✅');
+              return res.status(200).json({
+                redirect: true,
+                redirectType: redirectData.redirectType,
+                redirectUrl: redirectData.redirectUrl || '/r/global',
+                pagePath: redirectData.pagePath,
+                age: age
+              });
+            }
+          }
+        } catch (kvError) {
+          console.warn('[redirect/active] KV check error:', kvError.message);
+        }
+      }
+      
+      // FALLBACK 1: Module-level variable (works if same function instance)
       if (activeRedirect && (now - redirectSetTime) < maxAge) {
         const age = now - redirectSetTime;
         console.log('[redirect/active] ✅✅✅ FOUND IN MODULE VARIABLE ✅✅✅');
@@ -28,7 +57,7 @@ export default async function handler(req, res) {
         });
       }
       
-      // Check 2: Global redirect history (if available)
+      // FALLBACK 2: Global redirect history
       if (global.redirectHistory && global.redirectHistory.length > 0) {
         const latest = global.redirectHistory[global.redirectHistory.length - 1];
         const age = now - (latest.timestampMs || 0);
@@ -44,7 +73,7 @@ export default async function handler(req, res) {
         }
       }
       
-      // Check 3: Global redirect (if available)
+      // FALLBACK 3: Global redirect
       if (global.globalRedirect && global.globalRedirect.redirect) {
         const age = now - (global.globalRedirect.timestampMs || 0);
         if (age < maxAge) {
@@ -59,7 +88,7 @@ export default async function handler(req, res) {
         }
       }
       
-      // Check 4: RedirectStore global (if available)
+      // FALLBACK 4: RedirectStore global
       if (global.redirectStore && global.redirectStore['global']) {
         const globalRedirect = global.redirectStore['global'];
         const age = now - (globalRedirect.timestampMs || 0);
@@ -82,7 +111,7 @@ export default async function handler(req, res) {
       res.status(500).json({ error: 'Internal server error' });
     }
   } else if (req.method === 'POST') {
-    // Set redirect - store in ALL possible locations
+    // Set redirect - PRIMARY: Store in Vercel KV
     try {
       const { redirectType, pagePath } = req.body;
       const now = Date.now();
@@ -96,11 +125,20 @@ export default async function handler(req, res) {
         timestampMs: now
       };
       
-      // Store in module-level variable
+      // PRIMARY: Store in Vercel KV (persists across function invocations)
+      if (kv && process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+        try {
+          await kv.setex('redirect:global', 300, JSON.stringify(redirectData)); // 5 minute TTL
+          console.log('[redirect/active] ✅✅✅ STORED IN VERCEL KV ✅✅✅');
+        } catch (kvError) {
+          console.error('[redirect/active] KV storage error:', kvError.message);
+        }
+      }
+      
+      // FALLBACK: Store in memory (works if same function instance)
       activeRedirect = redirectData;
       redirectSetTime = now;
       
-      // Store in global state
       if (!global.globalRedirect) global.globalRedirect = {};
       if (!global.redirectStore) global.redirectStore = {};
       if (!global.redirectHistory) global.redirectHistory = [];
@@ -112,7 +150,7 @@ export default async function handler(req, res) {
         global.redirectHistory.shift();
       }
       
-      console.log('[redirect/active] ✅✅✅ REDIRECT SET IN ALL LOCATIONS ✅✅✅');
+      console.log('[redirect/active] ✅✅✅ REDIRECT SET ✅✅✅');
       console.log('[redirect/active] Redirect:', redirectData);
       
       res.status(200).json({ success: true, redirect: redirectData });

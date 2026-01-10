@@ -19,14 +19,31 @@ Complete guide to deploy and configure your project on Vercel for production.
 
 Your project will be deployed and you'll get a URL like: `https://your-project.vercel.app`
 
-## Step 2: Storage
+## Step 2: Set Up Vercel KV (Required for Redirects)
 
-The app uses **in-memory storage** only. No database setup required!
+**Vercel KV is REQUIRED for redirects to work reliably** because serverless functions are stateless.
 
-- All data (activities, approvals, redirects) is stored in memory
-- Data persists during the function execution but is lost on serverless function restart
-- This is fine for the redirect flow since redirects are processed immediately
-- For activities/approvals, data is available during the session
+### Set Up Vercel KV
+
+1. In Vercel Dashboard, go to your project
+2. Click **"Storage"** tab
+3. Click **"Create Database"**
+4. Select **"KV"** (Key-Value)
+5. Choose a name and region
+6. Click **"Create"**
+
+Vercel will automatically set these environment variables:
+- `KV_REST_API_URL` ✅ (auto-set)
+- `KV_REST_API_TOKEN` ✅ (auto-set)
+
+**Note:** These are set automatically - you don't need to add them manually!
+
+### Why KV is Required
+
+- Serverless functions are stateless - `global` variables don't persist across different function invocations
+- When Telegram webhook sets redirect in function instance A, client polling hits instance B (no shared state)
+- Vercel KV provides persistent storage that works across all function instances
+- Redirects are stored with 5-minute TTL and retrieved reliably
 
 ## Step 3: Configure Environment Variables
 

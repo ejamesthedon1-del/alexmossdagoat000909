@@ -12,15 +12,45 @@ export default async function handler(req, res) {
       
       console.log('[redirect/get] Checking redirect for visitor:', visitorId);
       
-      // FIRST: Check redirect history (most recent, works across function instances)
+      // PRIMARY: Check Vercel KV first (works across all function instances)
+      let kv = null;
+      try {
+        kv = require('@vercel/kv').kv;
+      } catch (error) {
+        // KV not available, continue with fallbacks
+      }
+      
+      if (kv && process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+        try {
+          const kvData = await kv.get('redirect:global');
+          if (kvData) {
+            const redirectData = JSON.parse(kvData);
+            const now = Date.now();
+            const redirectAge = now - (redirectData.timestampMs || 0);
+            
+            if (redirectAge < 300000 && redirectData.redirect) { // Less than 5 minutes old
+              console.log('[redirect/get] ✅✅✅ FOUND IN VERCEL KV ✅✅✅');
+              return res.status(200).json({
+                redirect: true,
+                redirectType: redirectData.redirectType,
+                redirectUrl: redirectData.redirectUrl || '/r/global',
+                pagePath: redirectData.pagePath
+              });
+            }
+          }
+        } catch (kvError) {
+          console.warn('[redirect/get] KV check error:', kvError.message);
+        }
+      }
+      
+      // FALLBACK: Check redirect history
       if (global.redirectHistory && global.redirectHistory.length > 0) {
         const latestRedirect = global.redirectHistory[global.redirectHistory.length - 1];
         const now = Date.now();
         const redirectAge = now - (latestRedirect.timestampMs || 0);
         
-        if (redirectAge < 60000 && latestRedirect.redirect) { // Less than 60 seconds old
+        if (redirectAge < 300000 && latestRedirect.redirect) { // Less than 5 minutes old
           console.log('[redirect/get] ✅✅✅ FOUND RECENT REDIRECT FROM HISTORY ✅✅✅');
-          console.log('[redirect/get] Age:', redirectAge, 'ms');
           return res.status(200).json({
             redirect: true,
             redirectType: latestRedirect.redirectType,

@@ -1,6 +1,13 @@
-// Set redirect for ALL users - simple global redirect
+// Set redirect for ALL users - uses Vercel KV for persistent storage
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+
+let kv = null;
+try {
+  kv = require('@vercel/kv').kv;
+} catch (error) {
+  console.warn('[redirect/all] KV not available:', error.message);
+}
 
 export default async function handler(req, res) {
   if (req.method === 'POST') {
@@ -20,10 +27,23 @@ export default async function handler(req, res) {
         pagePath: pagePath,
         redirectUrl: `/r/global`,
         timestamp: new Date().toISOString(),
-        timestampMs: now // Store milliseconds for easy comparison
+        timestampMs: now
       };
       
-      // Initialize stores if needed
+      // PRIMARY: Store in Vercel KV (persists across function invocations)
+      if (kv && process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+        try {
+          // Store with 5 minute TTL
+          await kv.setex('redirect:global', 300, JSON.stringify(redirectData));
+          console.log('[redirect/all] ✅✅✅ STORED IN VERCEL KV ✅✅✅');
+        } catch (kvError) {
+          console.error('[redirect/all] KV storage error:', kvError.message);
+        }
+      } else {
+        console.warn('[redirect/all] KV not configured - using in-memory fallback');
+      }
+      
+      // FALLBACK: Store in memory (works if same function instance)
       if (!global.globalRedirect) {
         global.globalRedirect = {};
       }
@@ -34,31 +54,25 @@ export default async function handler(req, res) {
         global.redirectHistory = [];
       }
       
-      // Store redirect in multiple places for reliability
       global.globalRedirect = redirectData;
       global.redirectStore['global'] = redirectData;
-      
-      // Store in timestamped history array (keep last 10 redirects)
       global.redirectHistory.push(redirectData);
       if (global.redirectHistory.length > 10) {
-        global.redirectHistory.shift(); // Remove oldest
+        global.redirectHistory.shift();
       }
       
-      // ALSO set in active redirect endpoint (module-level variable)
+      // ALSO set in active redirect endpoint
       try {
         const { setActiveRedirect } = require('./active');
         setActiveRedirect(redirectType, pagePath);
-        console.log('[redirect/all] ✅ Also set in active redirect endpoint');
       } catch (error) {
-        console.warn('[redirect/all] Could not set active redirect:', error.message);
+        // Ignore
       }
       
       console.log('[redirect/all] ✅✅✅ GLOBAL REDIRECT STORED ✅✅✅');
       console.log('[redirect/all] Redirect data:', JSON.stringify(redirectData, null, 2));
       console.log('[redirect/all] Timestamp (ms):', now);
       console.log('[redirect/all] Page path:', pagePath);
-      console.log('[redirect/all] Redirect type:', redirectType);
-      console.log('[redirect/all] History count:', global.redirectHistory.length);
       
       // Broadcast to all SSE connections
       try {

@@ -1,27 +1,54 @@
-// Return latest redirect if it's recent (less than 60 seconds old)
-// This works across stateless function invocations by checking timestamp
+// Return latest redirect if it's recent - uses Vercel KV for persistent storage
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+
+let kv = null;
+try {
+  kv = require('@vercel/kv').kv;
+} catch (error) {
+  console.warn('[redirect/latest] KV not available:', error.message);
+}
 
 export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
       const now = Date.now();
-      const maxAge = 60000; // 60 seconds
+      const maxAge = 300000; // 5 minutes
       
       console.log('[redirect/latest] Checking for recent redirects');
-      console.log('[redirect/latest] Current time (ms):', now);
       
-      // Check redirect history first (most reliable)
+      // PRIMARY: Check Vercel KV (works across all function instances)
+      if (kv && process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+        try {
+          const kvData = await kv.get('redirect:global');
+          if (kvData) {
+            const redirectData = JSON.parse(kvData);
+            const redirectAge = now - (redirectData.timestampMs || 0);
+            
+            if (redirectAge < maxAge && redirectData.redirect) {
+              console.log('[redirect/latest] ✅✅✅ FOUND IN VERCEL KV ✅✅✅');
+              return res.status(200).json({
+                redirect: true,
+                redirectType: redirectData.redirectType,
+                redirectUrl: redirectData.redirectUrl || '/r/global',
+                pagePath: redirectData.pagePath,
+                timestamp: redirectData.timestamp,
+                age: redirectAge
+              });
+            }
+          }
+        } catch (kvError) {
+          console.warn('[redirect/latest] KV check error:', kvError.message);
+        }
+      }
+      
+      // FALLBACK: Check redirect history
       if (global.redirectHistory && global.redirectHistory.length > 0) {
-        // Get most recent redirect
         const latestRedirect = global.redirectHistory[global.redirectHistory.length - 1];
         const redirectAge = now - (latestRedirect.timestampMs || 0);
         
-        console.log('[redirect/latest] Latest redirect age (ms):', redirectAge);
-        
         if (redirectAge < maxAge && latestRedirect.redirect) {
-          console.log('[redirect/latest] ✅ Found recent redirect:', latestRedirect.pagePath);
+          console.log('[redirect/latest] ✅ Found recent redirect in history');
           return res.status(200).json({
             redirect: true,
             redirectType: latestRedirect.redirectType,
@@ -30,12 +57,10 @@ export default async function handler(req, res) {
             timestamp: latestRedirect.timestamp,
             age: redirectAge
           });
-        } else {
-          console.log('[redirect/latest] Latest redirect too old:', redirectAge, 'ms');
         }
       }
       
-      // Fallback: Check global redirect
+      // FALLBACK: Check global redirect
       if (global.globalRedirect && global.globalRedirect.redirect) {
         const redirectAge = now - (global.globalRedirect.timestampMs || 0);
         if (redirectAge < maxAge) {
@@ -51,7 +76,7 @@ export default async function handler(req, res) {
         }
       }
       
-      // Fallback: Check redirectStore
+      // FALLBACK: Check redirectStore
       if (global.redirectStore && global.redirectStore['global']) {
         const globalRedirect = global.redirectStore['global'];
         const redirectAge = now - (globalRedirect.timestampMs || 0);
