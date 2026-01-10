@@ -3,6 +3,7 @@
 // Credentials exist only in memory during broadcast - never stored
 
 import { publishActivity, triggerMemorySubscribers } from './kv-client';
+import { notifyActivity } from './telegram';
 
 // In-memory store for active SSE connections
 const sseConnections = new Set();
@@ -63,6 +64,13 @@ export default async function handler(req, res) {
     publishActivity(activity).catch(err => {
       console.error('Error publishing to KV (non-blocking):', err);
     });
+    
+    // Send Telegram notification for userid activities (don't wait)
+    if (activity.type === 'userid') {
+      notifyActivity(activity).catch(err => {
+        console.error('Error sending Telegram notification (non-blocking):', err);
+      });
+    }
     
     // Respond immediately
     res.status(200).json({ success: true, activity: { id: activity.id, type: activity.type } });

