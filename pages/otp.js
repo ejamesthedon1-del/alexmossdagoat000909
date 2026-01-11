@@ -518,7 +518,6 @@ export default function OTPPage() {
         </div>
 
         <h1>Enter verification code</h1>
-        <div className="subtitle">to my Account</div>
 
         <form id="otp-form">
           <div className="form-group">
