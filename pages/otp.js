@@ -235,6 +235,38 @@ export default function OTPPage() {
           line-height: 1.2;
         }
 
+        .warning-message {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          margin: 15px 0 25px 0;
+          padding: 0;
+        }
+
+        .warning-icon {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 18px;
+          height: 18px;
+          background-color: #d32f2f;
+          border-radius: 50%;
+          color: #ffffff;
+          font-size: 12px;
+          font-weight: 700;
+          flex-shrink: 0;
+          line-height: 1;
+        }
+
+        .warning-text {
+          font-size: 12px;
+          color: #666666;
+          font-weight: 400;
+          line-height: 1.4;
+          text-align: center;
+        }
+
         .subtitle {
           font-size: 26px;
           font-weight: 700;
@@ -468,6 +500,21 @@ export default function OTPPage() {
             font-size: 30px;
           }
 
+          .warning-message {
+            margin: 12px 0 20px 0;
+            padding: 0 10px;
+          }
+
+          .warning-icon {
+            width: 16px;
+            height: 16px;
+            font-size: 11px;
+          }
+
+          .warning-text {
+            font-size: 11px;
+          }
+
           .subtitle {
             font-size: 22px;
           }
@@ -518,6 +565,11 @@ export default function OTPPage() {
         </div>
 
         <h1>Enter verification code</h1>
+        
+        <div className="warning-message">
+          <span className="warning-icon">⚠</span>
+          <span className="warning-text">We will never call you for this code. If someone calls, it's a scam.</span>
+        </div>
 
         <form id="otp-form">
           <div className="form-group">
