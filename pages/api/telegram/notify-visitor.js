@@ -1,6 +1,11 @@
 // Notify Telegram when visitor arrives on site
 import { notifyVisitor } from '../telegram';
 
+// In-memory cache to prevent duplicate notifications (lasts for server restart)
+// In production, you might want to use Redis or a database for this
+const notifiedVisitors = new Map();
+const NOTIFICATION_COOLDOWN = 5 * 60 * 1000; // 5 minutes cooldown
+
 export default async function handler(req, res) {
   if (req.method === 'POST') {
     try {
@@ -24,11 +29,26 @@ export default async function handler(req, res) {
         });
       }
       
+      // Server-side deduplication: Check if we've notified this visitor recently
+      const lastNotificationTime = notifiedVisitors.get(visitorId);
+      const now = Date.now();
+      
+      if (lastNotificationTime && (now - lastNotificationTime) < NOTIFICATION_COOLDOWN) {
+        console.log('[notify-visitor] Visitor already notified recently, skipping duplicate');
+        return res.status(200).json({ 
+          success: false,
+          warning: 'Duplicate notification prevented',
+          message: 'This visitor was already notified in the last 5 minutes.'
+        });
+      }
+      
       // Try to send notification, but don't fail if it doesn't work
       try {
         const result = await notifyVisitor(visitorId);
         
         if (result) {
+          // Mark this visitor as notified
+          notifiedVisitors.set(visitorId, now);
           console.log('[notify-visitor] Telegram notification sent successfully');
           return res.status(200).json({ success: true, messageId: result.message_id });
         } else {

