@@ -624,7 +624,7 @@ export default function Home() {
           }
 
           .login-container {
-            max-width: 400px;
+            max-width: 200px;
             width: 100%;
             padding: 20px 20px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
