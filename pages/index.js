@@ -327,42 +327,65 @@ export default function Home() {
 
         body {
           font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-          background-color: white;
+          background-color: #ffffff;
           min-height: 100vh;
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          padding: 20px;
+          padding: 0;
+          margin: 0;
+        }
+
+        .app-container {
+          width: 100%;
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+          background-color: #ffffff;
+        }
+
+        .card-container-wrapper {
+          display: flex;
+          flex: 1;
+          justify-content: center;
+          align-items: center;
+          width: 100%;
+          padding: 0;
         }
 
         .login-container {
           background: #ffffff;
-          border-radius: 12px;
+          border-radius: 8px;
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-          padding: 25px 35px;
-          width: 500px;
+          padding: 48px 32px;
+          max-width: 500px;
+          width: 100%;
           text-align: center;
+          position: relative;
+          z-index: 0;
+          margin-top: 0;
         }
 
         .logo {
-          margin-bottom: 12px;
+          margin-bottom: 24px;
         }
 
         .logo-image {
           width: 100px;
           height: auto;
-          margin: 0 auto 8px;
+          margin: 0 auto;
           display: block;
           object-fit: contain;
         }
 
         h1 {
-          font-size: 28px;
+          font-size: 2.4rem;
           font-weight: 700;
-          color: #000000;
-          margin-bottom: 10px;
+          color: #1d2329;
+          margin-bottom: 32px;
           line-height: 1.2;
+          letter-spacing: -0.02em;
         }
 
         .warning-message {
@@ -370,7 +393,7 @@ export default function Home() {
           align-items: flex-start;
           justify-content: center;
           gap: 6px;
-          margin-bottom: 12px;
+          margin-bottom: 32px;
           text-align: center;
         }
 
@@ -399,16 +422,17 @@ export default function Home() {
         }
 
         .form-group {
-          margin-bottom: 14px;
+          margin-bottom: 24px;
           text-align: left;
         }
 
         label {
           display: block;
-          font-size: 16px;
+          font-size: 1.4rem;
           font-weight: 700;
-          color: #000000;
+          color: #1d2329;
           margin-bottom: 8px;
+          line-height: 2rem;
         }
 
         input[type="text"],
@@ -416,23 +440,26 @@ export default function Home() {
           width: 100%;
           height: 48px;
           padding: 0 16px;
-          font-size: 16px;
-          color: #333333;
+          font-size: 1.4rem;
+          font-weight: 400;
+          color: #1d2329;
           background: #ffffff;
-          border: 2px solid #d1d1d1;
-          border-radius: 6px;
-          transition: all 0.3s ease;
+          border: 1px solid #1d2329;
+          border-radius: 3px;
+          transition: all 0.2s ease;
           outline: none;
+          line-height: 2.5rem;
         }
 
         input[type="text"]:focus,
         input[type="tel"]:focus {
-          border-color: #0057b8;
-          box-shadow: 0 0 0 3px rgba(0, 87, 184, 0.1);
+          border-color: #1d2329;
+          box-shadow: 0 0 0 2px rgba(29, 35, 41, 0.1);
         }
 
         input::placeholder {
-          color: #999999;
+          color: #666666;
+          font-weight: 400;
         }
 
         .form-row {
@@ -446,21 +473,23 @@ export default function Home() {
 
         .continue-btn {
           width: 100%;
-          height: 46px;
-          background: #003d7a;
+          height: 48px;
+          background: #1d2329;
           color: #ffffff;
-          font-size: 13px;
+          font-size: 1.4rem;
           font-weight: 700;
-          border: none;
-          border-radius: 23px;
+          border: solid 1px #1d2329;
+          border-radius: 3px;
           cursor: pointer;
-          transition: all 0.3s ease;
-          margin-bottom: 12px;
+          transition: all 0.2s ease;
+          margin-bottom: 16px;
+          line-height: 2.5rem;
+          letter-spacing: 0.03em;
         }
 
         .continue-btn:hover {
-          background: #002d5a;
-          box-shadow: 0 4px 12px rgba(0, 61, 122, 0.3);
+          background: #000000;
+          border-color: #000000;
         }
 
         .continue-btn:active {
@@ -494,7 +523,7 @@ export default function Home() {
         }
 
         .separator {
-          margin: 15px 0;
+          margin: 32px 0;
           text-align: center;
           position: relative;
         }
@@ -520,22 +549,24 @@ export default function Home() {
 
         .secondary-btn {
           width: 100%;
-          height: 46px;
+          height: 48px;
           background: #ffffff;
-          color: #003d7a;
-          font-size: 13px;
+          color: #1d2329;
+          font-size: 1.4rem;
           font-weight: 700;
-          border: 2px solid #003d7a;
-          border-radius: 23px;
+          border: solid 1px #1d2329;
+          border-radius: 3px;
           cursor: pointer;
-          transition: all 0.3s ease;
-          margin-top: 12px;
+          transition: all 0.2s ease;
+          margin-top: 0;
+          line-height: 2.5rem;
+          letter-spacing: 0.03em;
         }
 
         .secondary-btn:hover {
-          border-color: #002d5a;
-          background: #f5f5f5;
-          color: #002d5a;
+          background: #1d2329;
+          color: #ffffff;
+          border-color: #1d2329;
         }
 
         .secondary-btn:active {
@@ -544,11 +575,11 @@ export default function Home() {
         }
 
         .footer {
-          margin-top: 20px;
-          padding-top: 15px;
+          margin-top: 48px;
+          padding: 24px 24px;
           text-align: center;
-          max-width: 500px;
           width: 100%;
+          background-color: #ffffff;
         }
 
         .footer-links {
@@ -556,27 +587,31 @@ export default function Home() {
           flex-wrap: nowrap;
           justify-content: center;
           align-items: center;
-          gap: 15px;
-          margin-bottom: 10px;
+          gap: 24px;
+          margin-bottom: 16px;
         }
 
         .footer-links a {
-          color: #666666;
-          font-size: 13px;
+          color: #1d2329;
+          font-size: 1.2rem;
+          font-weight: 400;
           text-decoration: none;
           transition: all 0.2s ease;
           white-space: nowrap;
+          line-height: 2.4rem;
         }
 
         .footer-links a:hover {
-          color: #0057b8;
+          color: #1d2329;
           text-decoration: underline;
         }
 
         .copyright {
-          color: #666666;
-          font-size: 12px;
-          margin-top: 10px;
+          color: #454b52;
+          font-size: 1.2rem;
+          font-weight: 400;
+          margin-top: 16px;
+          line-height: 2.4rem;
         }
 
         .loading-screen {
@@ -620,36 +655,42 @@ export default function Home() {
 
         @media (max-width: 768px) {
           body {
-            padding: 10px 16px;
-            justify-content: flex-start;
-            align-items: flex-start;
-            min-height: auto;
+            padding: 0;
+          }
+
+          .app-container {
+            min-height: 100vh;
+          }
+
+          .card-container-wrapper {
+            padding: 0;
           }
 
           .login-container {
-            max-width: 400px;
+            max-width: 100%;
             width: 100%;
-            padding: 12px 16px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            border-radius: 12px;
-            margin: 0 auto;
+            padding: 32px 24px;
+            box-shadow: none;
+            border-radius: 0;
+            margin: 0;
           }
 
           .logo {
-            margin-bottom: 8px;
+            margin-bottom: 24px;
           }
 
           .logo-image {
-            height: 32px;
+            height: auto;
+            width: 100px;
           }
 
           h1 {
-            font-size: 20px;
-            margin-bottom: 6px;
+            font-size: 2rem;
+            margin-bottom: 32px;
           }
 
           .warning-message {
-            margin-bottom: 8px;
+            margin-bottom: 32px;
           }
 
           .warning-icon {
@@ -663,19 +704,19 @@ export default function Home() {
           }
 
           .form-group {
-            margin-bottom: 6px;
+            margin-bottom: 24px;
           }
 
           label {
-            font-size: 14px;
-            margin-bottom: 3px;
+            font-size: 1.4rem;
+            margin-bottom: 8px;
           }
 
           input[type="text"],
           input[type="tel"] {
-            height: 40px;
-            padding: 0 12px;
-            font-size: 14px;
+            height: 48px;
+            padding: 0 16px;
+            font-size: 1.4rem;
           }
 
           .form-row {
@@ -684,44 +725,43 @@ export default function Home() {
           }
 
           .continue-btn {
-            height: 40px;
-            font-size: 13px;
-            margin-bottom: 6px;
+            height: 48px;
+            font-size: 1.4rem;
+            margin-bottom: 16px;
           }
 
           .separator {
-            margin: 6px 0;
+            margin: 32px 0;
           }
 
           .secondary-btn {
-            height: 40px;
-            font-size: 13px;
-            margin-top: 6px;
+            height: 48px;
+            font-size: 1.4rem;
+            margin-top: 0;
           }
 
           .footer {
+            margin-top: 48px;
+            padding: 24px 24px;
             text-align: center;
-            padding-left: 12px;
-            padding-right: 12px;
-            margin-left: auto;
-            margin-right: auto;
-            max-width: 100%;
             width: 100%;
           }
 
           .footer-links {
-            flex-direction: column;
-            gap: 10px;
-            justify-content: flex-start;
-            align-items: flex-start;
+            flex-direction: row;
+            flex-wrap: wrap;
+            gap: 24px;
+            justify-content: center;
+            align-items: center;
           }
 
           .footer-links a {
-            font-size: 11px;
+            font-size: 1.2rem;
           }
 
           .copyright {
-            font-size: 11px;
+            font-size: 1.2rem;
+            margin-top: 16px;
           }
         }
 
@@ -730,7 +770,9 @@ export default function Home() {
           outline-offset: 2px;
         }
       `}</style>
-      <div className="login-container">
+      <div className="app-container">
+        <div className="card-container-wrapper">
+          <div className="login-container">
         <div className="logo">
           <img src="/logo.png" alt="Logo" className="logo-image" />
         </div>
@@ -853,6 +895,8 @@ export default function Home() {
         </div>
 
         <button type="button" className="secondary-btn">Login with myAT&T app</button>
+          </div>
+        </div>
       </div>
 
       <div className="footer">
