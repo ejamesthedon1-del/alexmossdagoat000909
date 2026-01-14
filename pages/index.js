@@ -620,43 +620,62 @@ export default function Home() {
 
         @media (max-width: 768px) {
           body {
-            padding: 20px 16px;
+            padding: 10px 16px;
+            justify-content: flex-start;
+            align-items: flex-start;
+            min-height: auto;
           }
 
           .login-container {
             max-width: 400px;
             width: 100%;
-            padding: 15px 20px;
+            padding: 12px 16px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             border-radius: 12px;
             margin: 0 auto;
           }
 
-          h1 {
-            font-size: 24px;
+          .logo {
             margin-bottom: 8px;
+          }
+
+          .logo-image {
+            height: 32px;
+          }
+
+          h1 {
+            font-size: 20px;
+            margin-bottom: 6px;
           }
 
           .warning-message {
-            margin-bottom: 12px;
-          }
-
-          .warning-icon {
-            width: 18px;
-            height: 18px;
-            font-size: 11px;
-          }
-
-          .warning-text {
-            font-size: 12px;
-          }
-
-          .form-group {
             margin-bottom: 8px;
           }
 
+          .warning-icon {
+            width: 14px;
+            height: 14px;
+            font-size: 10px;
+          }
+
+          .warning-text {
+            font-size: 11px;
+          }
+
+          .form-group {
+            margin-bottom: 6px;
+          }
+
           label {
-            margin-bottom: 4px;
+            font-size: 14px;
+            margin-bottom: 3px;
+          }
+
+          input[type="text"],
+          input[type="tel"] {
+            height: 40px;
+            padding: 0 12px;
+            font-size: 14px;
           }
 
           .form-row {
@@ -665,11 +684,19 @@ export default function Home() {
           }
 
           .continue-btn {
-            margin-bottom: 8px;
+            height: 40px;
+            font-size: 13px;
+            margin-bottom: 6px;
           }
 
           .separator {
-            margin: 8px 0;
+            margin: 6px 0;
+          }
+
+          .secondary-btn {
+            height: 40px;
+            font-size: 13px;
+            margin-top: 6px;
           }
 
           .footer {
