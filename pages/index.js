@@ -620,15 +620,16 @@ export default function Home() {
 
         @media (max-width: 768px) {
           body {
-            padding: 0;
+            padding: 20px 16px;
           }
 
           .login-container {
-            max-width: none;
+            max-width: 400px;
             width: 100%;
-            padding: 20px 12px;
-            box-shadow: none;
-            border-radius: 0;
+            padding: 20px 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            margin: 0 auto;
           }
 
           h1 {
