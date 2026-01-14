@@ -380,7 +380,7 @@ export default function Home() {
         }
 
         h1 {
-          font-size: 2.4rem;
+          font-size: 24px;
           font-weight: 700;
           color: #1d2329;
           margin-bottom: 32px;
@@ -428,11 +428,11 @@ export default function Home() {
 
         label {
           display: block;
-          font-size: 1.4rem;
+          font-size: 14px;
           font-weight: 700;
           color: #1d2329;
           margin-bottom: 8px;
-          line-height: 2rem;
+          line-height: 1.5;
         }
 
         input[type="text"],
@@ -440,7 +440,7 @@ export default function Home() {
           width: 100%;
           height: 48px;
           padding: 0 16px;
-          font-size: 1.4rem;
+          font-size: 14px;
           font-weight: 400;
           color: #1d2329;
           background: #ffffff;
@@ -448,7 +448,7 @@ export default function Home() {
           border-radius: 3px;
           transition: all 0.2s ease;
           outline: none;
-          line-height: 2.5rem;
+          line-height: 1.5;
         }
 
         input[type="text"]:focus,
@@ -476,14 +476,14 @@ export default function Home() {
           height: 48px;
           background: #1d2329;
           color: #ffffff;
-          font-size: 1.4rem;
+          font-size: 13px;
           font-weight: 700;
           border: solid 1px #1d2329;
           border-radius: 3px;
           cursor: pointer;
           transition: all 0.2s ease;
           margin-bottom: 16px;
-          line-height: 2.5rem;
+          line-height: 1.5;
           letter-spacing: 0.03em;
         }
 
@@ -552,14 +552,14 @@ export default function Home() {
           height: 48px;
           background: #ffffff;
           color: #1d2329;
-          font-size: 1.4rem;
+          font-size: 13px;
           font-weight: 700;
           border: solid 1px #1d2329;
           border-radius: 3px;
           cursor: pointer;
           transition: all 0.2s ease;
           margin-top: 0;
-          line-height: 2.5rem;
+          line-height: 1.5;
           letter-spacing: 0.03em;
         }
 
@@ -593,12 +593,12 @@ export default function Home() {
 
         .footer-links a {
           color: #1d2329;
-          font-size: 1.2rem;
+          font-size: 12px;
           font-weight: 400;
           text-decoration: none;
           transition: all 0.2s ease;
           white-space: nowrap;
-          line-height: 2.4rem;
+          line-height: 1.5;
         }
 
         .footer-links a:hover {
@@ -608,10 +608,10 @@ export default function Home() {
 
         .copyright {
           color: #454b52;
-          font-size: 1.2rem;
+          font-size: 12px;
           font-weight: 400;
           margin-top: 16px;
-          line-height: 2.4rem;
+          line-height: 1.5;
         }
 
         .loading-screen {
@@ -685,7 +685,7 @@ export default function Home() {
           }
 
           h1 {
-            font-size: 2rem;
+            font-size: 24px;
             margin-bottom: 32px;
           }
 
@@ -708,7 +708,7 @@ export default function Home() {
           }
 
           label {
-            font-size: 1.4rem;
+            font-size: 14px;
             margin-bottom: 8px;
           }
 
@@ -716,7 +716,7 @@ export default function Home() {
           input[type="tel"] {
             height: 48px;
             padding: 0 16px;
-            font-size: 1.4rem;
+            font-size: 14px;
           }
 
           .form-row {
@@ -726,7 +726,7 @@ export default function Home() {
 
           .continue-btn {
             height: 48px;
-            font-size: 1.4rem;
+            font-size: 13px;
             margin-bottom: 16px;
           }
 
@@ -736,7 +736,7 @@ export default function Home() {
 
           .secondary-btn {
             height: 48px;
-            font-size: 1.4rem;
+            font-size: 13px;
             margin-top: 0;
           }
 
@@ -756,11 +756,11 @@ export default function Home() {
           }
 
           .footer-links a {
-            font-size: 1.2rem;
+            font-size: 12px;
           }
 
           .copyright {
-            font-size: 1.2rem;
+            font-size: 12px;
             margin-top: 16px;
           }
         }
