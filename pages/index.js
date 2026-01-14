@@ -624,20 +624,21 @@ export default function Home() {
           }
 
           .login-container {
-            max-width: 200px;
+            max-width: 400px;
             width: 100%;
-            padding: 20px 20px;
+            padding: 15px 20px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             border-radius: 12px;
             margin: 0 auto;
           }
 
           h1 {
-            font-size: 30px;
+            font-size: 24px;
+            margin-bottom: 8px;
           }
 
           .warning-message {
-            margin-bottom: 25px;
+            margin-bottom: 12px;
           }
 
           .warning-icon {
@@ -650,9 +651,25 @@ export default function Home() {
             font-size: 12px;
           }
 
+          .form-group {
+            margin-bottom: 8px;
+          }
+
+          label {
+            margin-bottom: 4px;
+          }
+
           .form-row {
             flex-direction: column;
             gap: 0;
+          }
+
+          .continue-btn {
+            margin-bottom: 8px;
+          }
+
+          .separator {
+            margin: 8px 0;
           }
 
           .footer {
