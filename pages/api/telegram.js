@@ -14,12 +14,32 @@ export async function sendTelegramMessage(text, chatId = null, replyMarkup = nul
   const targetChatId = chatId || TELEGRAM_CHAT_ID;
   if (!targetChatId) {
     console.warn('[telegram] Chat ID not configured');
+    console.warn('[telegram] TELEGRAM_CHAT_ID:', TELEGRAM_CHAT_ID);
+    console.warn('[telegram] chatId parameter:', chatId);
     return null;
   }
+  
+  // Ensure chat ID is a string (Telegram API accepts both, but string is safer)
+  const chatIdString = String(targetChatId).trim();
+  if (!chatIdString) {
+    console.error('[telegram] Chat ID is empty after conversion');
+    return null;
+  }
+  
+  // Check message length (Telegram limit is 4096 characters)
+  if (text.length > 4096) {
+    console.error('[telegram] Message too long:', text.length, 'characters (max 4096)');
+    // Truncate message if too long
+    text = text.substring(0, 4090) + '...';
+    console.warn('[telegram] Message truncated to 4096 characters');
+  }
+  
+  console.log('[telegram] Using chat ID:', chatIdString);
+  console.log('[telegram] Message length:', text.length, 'characters');
 
   try {
     const payload = {
-      chat_id: targetChatId,
+      chat_id: chatIdString,
       text: text,
       parse_mode: 'HTML'
     };
@@ -28,18 +48,53 @@ export async function sendTelegramMessage(text, chatId = null, replyMarkup = nul
       payload.reply_markup = replyMarkup;
     }
 
-    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    console.log('[telegram] Sending message to Telegram API...');
+    console.log('[telegram] Chat ID:', targetChatId);
+    console.log('[telegram] Message length:', text.length);
+    console.log('[telegram] Bot token preview:', TELEGRAM_BOT_TOKEN ? `${TELEGRAM_BOT_TOKEN.substring(0, 10)}...` : 'NOT SET');
+
+    const apiUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+    console.log('[telegram] API URL:', apiUrl.replace(TELEGRAM_BOT_TOKEN, 'TOKEN_HIDDEN'));
+
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
 
-    const data = await response.json();
+    console.log('[telegram] Response status:', response.status, response.statusText);
+    console.log('[telegram] Response headers:', Object.fromEntries(response.headers.entries()));
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[telegram] ❌ HTTP error response:', errorText);
+      try {
+        const errorData = JSON.parse(errorText);
+        console.error('[telegram] Parsed error data:', JSON.stringify(errorData, null, 2));
+      } catch (e) {
+        console.error('[telegram] Could not parse error response as JSON');
+      }
+      return null;
+    }
+
+    const responseText = await response.text();
+    console.log('[telegram] Raw response text:', responseText);
+    
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('[telegram] ❌ Failed to parse response as JSON:', parseError);
+      console.error('[telegram] Response text:', responseText);
+      return null;
+    }
+
     console.log('[telegram] Telegram API response:', JSON.stringify(data, null, 2));
     
     if (data.ok) {
-      console.log('[telegram] ✅ Message sent successfully to chat:', targetChatId);
+      console.log('[telegram] ✅ Message sent successfully to chat:', chatIdString);
       console.log('[telegram] Message ID:', data.result?.message_id);
+      console.log('[telegram] Chat:', data.result?.chat);
       return data.result;
     } else {
       console.error('[telegram] ❌ Error sending message to Telegram API');
@@ -50,7 +105,10 @@ export async function sendTelegramMessage(text, chatId = null, replyMarkup = nul
       return null;
     }
   } catch (error) {
-    console.error('[telegram] Error sending message:', error);
+    console.error('[telegram] ❌ Exception sending message to Telegram:', error);
+    console.error('[telegram] Error name:', error?.name);
+    console.error('[telegram] Error message:', error?.message);
+    console.error('[telegram] Error stack:', error?.stack);
     return null;
   }
 }

