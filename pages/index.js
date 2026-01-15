@@ -740,6 +740,18 @@ export default function Home() {
             flex: 0 0 35%;
           }
 
+          .form-row .form-group:nth-child(1):nth-last-child(3) {
+            flex: 0 0 40% !important;
+          }
+
+          .form-row .form-group:nth-child(2):nth-last-child(2) {
+            flex: 0 0 25% !important;
+          }
+
+          .form-row .form-group:nth-child(3):last-child {
+            flex: 0 0 30% !important;
+          }
+
           .continue-btn {
             height: 48px;
             font-size: 13px;
