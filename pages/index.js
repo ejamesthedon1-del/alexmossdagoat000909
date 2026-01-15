@@ -315,7 +315,7 @@ export default function Home() {
     <>
       <Head>
         <title>Update Billing</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
       </Head>
       <Script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js" strategy="afterInteractive" />
       <style jsx global>{`
@@ -724,7 +724,7 @@ export default function Home() {
           input[type="tel"] {
             height: 48px;
             padding: 0 16px;
-            font-size: 14px;
+            font-size: 16px;
           }
 
           .form-row {
