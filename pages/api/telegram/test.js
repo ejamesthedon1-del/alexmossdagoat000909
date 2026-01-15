@@ -19,7 +19,15 @@ export default async function handler(req, res) {
           success: false,
           status,
           error: 'Environment variables not configured',
-          instructions: 'Add TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID to .env.local'
+          instructions: [
+            'For Next.js dev (npm run dev): Add TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID to .env.local',
+            'For Vercel dev: Run "vercel env pull .env.local" or set in Vercel Dashboard',
+            'Then restart your dev server'
+          ],
+          troubleshooting: {
+            usingVercelDev: 'If using "vercel dev", environment variables must be set in Vercel Dashboard or pulled with "vercel env pull"',
+            usingNextDev: 'If using "npm run dev", .env.local is automatically loaded'
+          }
         });
       }
       

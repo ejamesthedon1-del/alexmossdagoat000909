@@ -56,23 +56,33 @@ export async function sendTelegramMessage(text, chatId = null, replyMarkup = nul
     const apiUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
     console.log('[telegram] API URL:', apiUrl.replace(TELEGRAM_BOT_TOKEN, 'TOKEN_HIDDEN'));
 
+    console.log('[telegram] Making fetch request to Telegram API...');
+    console.log('[telegram] Payload:', JSON.stringify({ ...payload, text: payload.text.substring(0, 100) + '...' }, null, 2));
+    
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
 
+    console.log('[telegram] ========== TELEGRAM API RESPONSE ==========');
     console.log('[telegram] Response status:', response.status, response.statusText);
+    console.log('[telegram] Response ok:', response.ok);
     console.log('[telegram] Response headers:', Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[telegram] ❌ HTTP error response:', errorText);
+      console.error('[telegram] ❌ HTTP error response from Telegram API');
+      console.error('[telegram] Status:', response.status, response.statusText);
+      console.error('[telegram] Error text:', errorText);
       try {
         const errorData = JSON.parse(errorText);
         console.error('[telegram] Parsed error data:', JSON.stringify(errorData, null, 2));
+        console.error('[telegram] Error code:', errorData.error_code);
+        console.error('[telegram] Error description:', errorData.description);
       } catch (e) {
         console.error('[telegram] Could not parse error response as JSON');
+        console.error('[telegram] Raw error:', errorText);
       }
       return null;
     }

