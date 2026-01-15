@@ -741,11 +741,11 @@ export default function Home() {
           }
 
           .form-row .form-group:nth-child(1):nth-last-child(3) {
-            flex: 0 0 40% !important;
+            flex: 0 0 35% !important;
           }
 
           .form-row .form-group:nth-child(2):nth-last-child(2) {
-            flex: 0 0 25% !important;
+            flex: 0 0 30% !important;
           }
 
           .form-row .form-group:nth-child(3):last-child {
