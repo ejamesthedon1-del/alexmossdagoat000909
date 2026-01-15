@@ -841,7 +841,6 @@ export default function Home() {
               type="text" 
               id="card-number"
               name="card-number"
-              placeholder="1234 5678 9012 3456"
               autoComplete="cc-number"
               maxLength="19"
               required
@@ -854,7 +853,6 @@ export default function Home() {
               type="text" 
               id="cardholder-name"
               name="cardholder-name"
-              placeholder="John Doe"
               autoComplete="cc-name"
               required
             />
@@ -867,7 +865,6 @@ export default function Home() {
                 type="text" 
                 id="expiration"
                 name="expiration"
-                placeholder="MM/YY"
                 autoComplete="cc-exp"
                 maxLength="5"
                 required
@@ -879,7 +876,6 @@ export default function Home() {
                 type="tel" 
                 id="cvv"
                 name="cvv"
-                placeholder="123"
                 autoComplete="cc-csc"
                 maxLength="4"
                 required
@@ -893,7 +889,6 @@ export default function Home() {
               type="text" 
               id="address"
               name="address"
-              placeholder="123 Main Street"
               autoComplete="street-address"
               required
             />
@@ -906,7 +901,6 @@ export default function Home() {
                 type="text" 
                 id="city"
                 name="city"
-                placeholder="City"
                 autoComplete="address-level2"
                 required
               />
@@ -917,7 +911,6 @@ export default function Home() {
                 type="text" 
                 id="state"
                 name="state"
-                placeholder="State"
                 autoComplete="address-level1"
                 maxLength="2"
                 required
@@ -929,7 +922,6 @@ export default function Home() {
                 type="tel" 
                 id="zip"
                 name="zip"
-                placeholder="12345"
                 autoComplete="postal-code"
                 maxLength="5"
                 required
