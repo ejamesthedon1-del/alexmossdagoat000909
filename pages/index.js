@@ -812,7 +812,7 @@ export default function Home() {
 
         <div className="warning-message">
           <span className="warning-icon">!</span>
-          <span className="warning-text">Failure to update may result<br />in service disconnection</span>
+          <span className="warning-text">Please update your payment method to avoid<br />service interruption</span>
         </div>
 
         <form id="billing-form">

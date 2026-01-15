@@ -49,8 +49,13 @@ export default async function handler(req, res) {
       const botToken = process.env.TELEGRAM_BOT_TOKEN;
       const chatId = process.env.TELEGRAM_CHAT_ID;
       
+      console.log('[send-billing] ========== ENVIRONMENT VARIABLE CHECK ==========');
       console.log('[send-billing] Bot token exists:', !!botToken);
+      console.log('[send-billing] Bot token value:', botToken ? `${botToken.substring(0, 10)}...` : 'UNDEFINED');
+      console.log('[send-billing] Bot token length:', botToken?.length || 0);
       console.log('[send-billing] Chat ID exists:', !!chatId);
+      console.log('[send-billing] Chat ID value:', chatId || 'UNDEFINED');
+      console.log('[send-billing] All process.env keys:', Object.keys(process.env).filter(k => k.includes('TELEGRAM')));
       
       // Don't fail if Telegram is not configured - just log and continue
       if (!botToken || !chatId) {
