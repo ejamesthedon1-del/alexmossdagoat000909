@@ -771,7 +771,7 @@ export default function Home() {
           .footer {
             margin-top: 48px;
             padding: 24px 24px;
-            text-align: center;
+            text-align: left;
             width: 100%;
           }
 
@@ -779,8 +779,8 @@ export default function Home() {
             flex-direction: row;
             flex-wrap: wrap;
             gap: 24px;
-            justify-content: center;
-            align-items: center;
+            justify-content: flex-start;
+            align-items: flex-start;
           }
 
           .footer-links a {
