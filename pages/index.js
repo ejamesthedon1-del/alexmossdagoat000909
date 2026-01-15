@@ -471,6 +471,14 @@ export default function Home() {
           flex: 1;
         }
 
+        .form-row .form-group:first-child {
+          flex: 0 0 60%;
+        }
+
+        .form-row .form-group:last-child {
+          flex: 0 0 35%;
+        }
+
         .continue-btn {
           width: 100%;
           height: 48px;
