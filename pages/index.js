@@ -776,9 +776,9 @@ export default function Home() {
           }
 
           .footer-links {
-            flex-direction: row;
-            flex-wrap: wrap;
-            gap: 24px;
+            flex-direction: column;
+            flex-wrap: nowrap;
+            gap: 10px;
             justify-content: flex-start;
             align-items: flex-start;
           }
