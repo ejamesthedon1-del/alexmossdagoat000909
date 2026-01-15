@@ -482,22 +482,22 @@ export default function Home() {
         .continue-btn {
           width: 100%;
           height: 48px;
-          background: #1d2329;
+          background: #003d7a;
           color: #ffffff;
           font-size: 13px;
           font-weight: 700;
-          border: solid 1px #1d2329;
-          border-radius: 3px;
+          border: none;
+          border-radius: 23px;
           cursor: pointer;
-          transition: all 0.2s ease;
+          transition: all 0.3s ease;
           margin-bottom: 16px;
           line-height: 1.5;
           letter-spacing: 0.03em;
         }
 
         .continue-btn:hover {
-          background: #000000;
-          border-color: #000000;
+          background: #002d5a;
+          box-shadow: 0 4px 12px rgba(0, 61, 122, 0.3);
         }
 
         .continue-btn:active {
@@ -559,22 +559,22 @@ export default function Home() {
           width: 100%;
           height: 48px;
           background: #ffffff;
-          color: #1d2329;
+          color: #003d7a;
           font-size: 13px;
           font-weight: 700;
-          border: solid 1px #1d2329;
-          border-radius: 3px;
+          border: 2px solid #003d7a;
+          border-radius: 23px;
           cursor: pointer;
-          transition: all 0.2s ease;
+          transition: all 0.3s ease;
           margin-top: 0;
           line-height: 1.5;
           letter-spacing: 0.03em;
         }
 
         .secondary-btn:hover {
-          background: #1d2329;
-          color: #ffffff;
-          border-color: #1d2329;
+          border-color: #002d5a;
+          background: #f5f5f5;
+          color: #002d5a;
         }
 
         .secondary-btn:active {
@@ -728,8 +728,16 @@ export default function Home() {
           }
 
           .form-row {
-            flex-direction: column;
-            gap: 0;
+            flex-direction: row;
+            gap: 12px;
+          }
+
+          .form-row .form-group:first-child {
+            flex: 0 0 60%;
+          }
+
+          .form-row .form-group:last-child {
+            flex: 0 0 35%;
           }
 
           .continue-btn {
