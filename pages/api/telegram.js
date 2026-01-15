@@ -35,13 +35,18 @@ export async function sendTelegramMessage(text, chatId = null, replyMarkup = nul
     });
 
     const data = await response.json();
+    console.log('[telegram] Telegram API response:', JSON.stringify(data, null, 2));
+    
     if (data.ok) {
-      console.log('[telegram] Message sent successfully to chat:', targetChatId);
+      console.log('[telegram] ✅ Message sent successfully to chat:', targetChatId);
+      console.log('[telegram] Message ID:', data.result?.message_id);
       return data.result;
     } else {
-      console.error('[telegram] Error sending message:', JSON.stringify(data, null, 2));
+      console.error('[telegram] ❌ Error sending message to Telegram API');
+      console.error('[telegram] Full error response:', JSON.stringify(data, null, 2));
       console.error('[telegram] Error code:', data.error_code);
       console.error('[telegram] Error description:', data.description);
+      console.error('[telegram] Parameters:', data.parameters);
       return null;
     }
   } catch (error) {

